@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "team-memory"
+version = "0.1.0"
+description = "团队 Agent Memory 共享系统 — 把 Cursor/Claude Code/Codex/Hermes 的记忆统一汇聚到 Gitea"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "vayne" }]
+keywords = ["agent", "memory", "team", "gitea", "claude-code", "cursor", "codex", "hermes"]
+dependencies = [
+    "typer>=0.12",
+    "rich>=13",
+    "pyyaml>=6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=5",
+]
+
+[project.scripts]
+team-memory = "team_memory.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["team_memory*"]
+
+# 模板随包发布(install 后 importlib.resources 也能访问; 开发期用相对路径)
+[tool.setuptools.package-data]
+team_memory = ["../templates/*.md", "../templates/*.tmpl"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+    "unit: 单元测试",
+    "integration: 集成测试(可能涉及文件系统/网络)",
+]
