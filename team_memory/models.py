@@ -42,7 +42,9 @@ __all__ = [
     "MemoryValidationError",
     "MEMORY_ID_PATTERN",
     "TYPE_DIR",
+    "author_slug",
     "format_memory_id",
+    "memory_id_author",
     "memory_id_date",
     "today_compact",
     "today_iso",
@@ -52,8 +54,8 @@ __all__ = [
 ]
 
 
-# 记忆 id 形如 mem-20260623-001
-MEMORY_ID_PATTERN = re.compile(r"^mem-(\d{8})-(\d{3})$")
+# 记忆 id 形如 mem-20260623-vayne-001 (含 author, 每人独立序号空间防多人撞号)
+MEMORY_ID_PATTERN = re.compile(r"^mem-(\d{8})-([a-z0-9_]+)-(\d{3})$")
 
 # 五类记忆 -> 落盘目录名
 TYPE_DIR: dict[str, str] = {
@@ -176,15 +178,32 @@ def today_iso() -> str:
     return date.today().isoformat()
 
 
-def format_memory_id(date_compact: str, seq: int) -> str:
-    """生成形如 mem-20260623-001 的记忆 id。"""
-    return f"mem-{date_compact}-{seq:03d}"
+def author_slug(author: str) -> str:
+    """把 author 转 id 安全的 ascii slug(小写, 仅 a-z0-9_); 非ascii/空返回空串。"""
+    return re.sub(r"[^a-z0-9_]", "", (author or "").lower())
+
+
+def format_memory_id(date_compact: str, author: str, seq: int) -> str:
+    """生成形如 mem-20260623-vayne-001 的记忆 id(author 入 id, 每人独立序号空间)。"""
+    slug = author_slug(author)
+    if not slug:
+        raise ValueError(
+            f"author 必须含 ascii 字母数字(用于 id 段): {author!r}; "
+            "请在 .env 配 DEFAULT_AUTHOR=<英文短名>, 或 --author 传入"
+        )
+    return f"mem-{date_compact}-{slug}-{seq:03d}"
 
 
 def memory_id_date(memory_id: str) -> str | None:
     """从记忆 id 提取 8 位日期, 非法返回 None。"""
     match = MEMORY_ID_PATTERN.match(memory_id)
     return match.group(1) if match else None
+
+
+def memory_id_author(memory_id: str) -> str | None:
+    """从记忆 id 提取 author 段, 非法返回 None。"""
+    match = MEMORY_ID_PATTERN.match(memory_id)
+    return match.group(2) if match else None
 
 
 # ---------------------------------------------------------------------------

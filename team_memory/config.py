@@ -55,7 +55,7 @@ class Config:
     gitea_remote_url: str = ""
     gitea_token: str = ""
     team_name: str = "我们的团队"
-    default_author: str = "vayne"
+    default_author: str = ""
     default_memory_path: str = "./memory"
     tencent_openclaw_path: str = ""
 
@@ -106,7 +106,7 @@ class Config:
             gitea_remote_url=merged.get("GITEA_REMOTE_URL", ""),
             gitea_token=merged.get("GITEA_TOKEN", ""),
             team_name=merged.get("TEAM_NAME", "我们的团队"),
-            default_author=merged.get("DEFAULT_AUTHOR", "vayne"),
+            default_author=merged.get("DEFAULT_AUTHOR", ""),
             default_memory_path=merged.get("DEFAULT_MEMORY_PATH", "./memory"),
             tencent_openclaw_path=merged.get("TENCENT_OPENCLAW_PATH", ""),
         )

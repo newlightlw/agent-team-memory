@@ -15,7 +15,7 @@ import typer
 from rich.console import Console
 
 from . import __version__
-from .commands import capture_cmd, init_cmd, list_cmd, load_cmd, show_cmd, sync_cmd, web_cmd
+from .commands import capture_cmd, doctor_cmd, init_cmd, index_cmd, list_cmd, load_cmd, show_cmd, sync_cmd, update_cmd, validate_cmd, web_cmd
 from .config import load_config
 from .models import MemoryValidationError
 from .store import NotAMemoryRepoError
@@ -122,6 +122,9 @@ def load(
     global_mode: bool = typer.Option(
         False, "--global", help="注册到各工具全局配置(一次配好所有项目)"
     ),
+    no_aux_skill: bool = typer.Option(
+        False, "--no-aux-skill", help="不装 auto-commit-memory 辅助 skill"
+    ),
 ) -> None:
     """把团队记忆加载到工具(--global 全局注册 / 默认项目级桥接)。"""
     try:
@@ -131,6 +134,7 @@ def load(
             root=Path(root) if root else None,
             link=link,
             global_mode=global_mode,
+            aux_skill=not no_aux_skill,
             console=console,
         )
     except (NotAMemoryRepoError, ValueError) as exc:
@@ -143,11 +147,16 @@ def sync(
     root: str = typer.Option(None, "-p", "--root", help="记忆仓库根"),
     push: bool = typer.Option(True, "--push/--no-push", help="是否 push"),
     pull: bool = typer.Option(True, "--pull/--no-pull", help="是否 pull"),
+    force: bool = typer.Option(False, "--force", help="跳过工作区未提交预检"),
 ) -> None:
     """与 Gitea 远程同步(pull + push, 不自动 commit)。"""
     try:
         ok = sync_cmd(
-            Path(root) if root else None, push=push, pull=pull, console=console
+            Path(root) if root else None,
+            push=push,
+            pull=pull,
+            force=force,
+            console=console,
         )
         if not ok:
             raise typer.Exit(1)
@@ -196,6 +205,66 @@ def web(
             open_browser=not no_browser,
             console=console,
         )
+    except NotAMemoryRepoError as exc:
+        console.print(f"[red]✗ {exc}[/]")
+        raise typer.Exit(1)
+
+
+@app.command(help="更新一条记忆(--note 追加 / --from-file 替换 / --supersede 废弃)")
+def update(
+    memory_id: str = typer.Argument(..., help="记忆 id"),
+    note: str = typer.Option(None, "--note", help="追加一段更新"),
+    from_file: str = typer.Option(None, "--from-file", help="替换正文(读取文件)"),
+    supersede: str = typer.Option(None, "--supersede", help="标记被取代, 传新 id"),
+    root: str = typer.Option(None, "-p", "--root", help="记忆仓库根"),
+) -> None:
+    try:
+        update_cmd(
+            memory_id,
+            note=note,
+            from_file=from_file,
+            supersede=supersede,
+            root=Path(root) if root else None,
+            console=console,
+        )
+    except (NotAMemoryRepoError, ValueError, MemoryValidationError) as exc:
+        console.print(f"[red]✗ {exc}[/]")
+        raise typer.Exit(1)
+
+
+@app.command(help="诊断仓库健康(解析失败/重复 id/悬空引用/缺 author)")
+def doctor(
+    root: str = typer.Option(None, "-p", "--root", help="记忆仓库根"),
+) -> None:
+    try:
+        code = doctor_cmd(Path(root) if root else None, console=console)
+        if code:
+            raise typer.Exit(code)
+    except NotAMemoryRepoError as exc:
+        console.print(f"[red]✗ {exc}[/]")
+        raise typer.Exit(1)
+
+
+@app.command(help="校验整个仓库(CI 用; 错误时退出码非 0)")
+def validate(
+    root: str = typer.Option(None, "-p", "--root", help="记忆仓库根"),
+    strict: bool = typer.Option(False, "--strict", help="warning 也算失败"),
+) -> None:
+    try:
+        code = validate_cmd(Path(root) if root else None, strict=strict, console=console)
+        if code:
+            raise typer.Exit(code)
+    except NotAMemoryRepoError as exc:
+        console.print(f"[red]✗ {exc}[/]")
+        raise typer.Exit(1)
+
+
+@app.command(help="生成各类型 _index.md 索引(按日期倒序, 便于浏览)")
+def index(
+    root: str = typer.Option(None, "-p", "--root", help="记忆仓库根"),
+) -> None:
+    try:
+        index_cmd(Path(root) if root else None, console=console)
     except NotAMemoryRepoError as exc:
         console.print(f"[red]✗ {exc}[/]")
         raise typer.Exit(1)

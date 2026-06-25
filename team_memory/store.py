@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import re
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from .models import (
     MemoryEntry,
     MemoryParseError,
     MemoryType,
+    author_slug,
     format_memory_id,
     memory_id_date,
     parse_memory,
@@ -114,8 +116,9 @@ class MemoryStore:
             if not directory.exists():
                 continue
             for md in sorted(directory.glob("*.md")):
-                # 按内容判断: 能解析为合法 frontmatter 的才算记忆;
-                # 模板/README/_index 等无 frontmatter 的会被自动跳过。
+                # 跳过 _template/_index 等非记忆文件; 其余按 frontmatter 判断
+                if md.name.startswith("_"):
+                    continue
                 try:
                     entries.append(parse_memory(md.read_text(encoding="utf-8")))
                 except MemoryParseError:
@@ -140,18 +143,49 @@ class MemoryStore:
                 return md
         return None
 
-    def next_id(self, date_compact: str | None = None) -> str:
-        """生成下一个可用 id: 取指定日期当天已有最大序号 + 1。"""
+    def list_parse_errors(self) -> list[tuple[Path, str]]:
+        """返回 frontmatter 解析失败的文件及错误(供 validate/doctor, 不再静默吞掉)。"""
+        errors: list[tuple[Path, str]] = []
+        for directory in [self.memory_dir() / name for name in TYPE_DIR.values()]:
+            if not directory.exists():
+                continue
+            for md in sorted(directory.glob("*.md")):
+                if md.name.startswith("_"):
+                    continue
+                try:
+                    parse_memory(md.read_text(encoding="utf-8"))
+                except MemoryParseError as exc:
+                    errors.append((md, str(exc)))
+        return errors
+
+    def check_unique(self) -> dict[str, list[Path]]:
+        """返回重复 id -> [文件路径] 列表(空 dict = 无重复)。"""
+        id_paths: dict[str, list[Path]] = defaultdict(list)
+        for entry in self.list_entries():
+            path = self.find_file(entry.id)
+            if path is not None:
+                id_paths[entry.id].append(path)
+        return {mid: paths for mid, paths in id_paths.items() if len(paths) > 1}
+
+    def next_id(self, date_compact: str | None = None, author: str = "") -> str:
+        """生成下一个可用 id: 按 (date, author) 算序号(每人独立空间, 防多人撞号)。"""
         day = date_compact or today_compact()
+        slug = author_slug(author)
+        if not slug:
+            raise ValueError(
+                f"author 必须含 ascii 字母数字(用于 id): {author!r}; "
+                "请在 .env 配 DEFAULT_AUTHOR=<英文短名>, 或 --author 传入"
+            )
+        prefix = f"mem-{day}-{slug}-"
         max_seq = 0
         for entry in self.list_entries():
-            if memory_id_date(entry.id) == day:
+            if entry.id.startswith(prefix):
                 try:
-                    seq = int(entry.id.rsplit("-", 1)[-1])
+                    seq = int(entry.id[len(prefix):])
                     max_seq = max(max_seq, seq)
                 except ValueError:
                     continue
-        return format_memory_id(day, max_seq + 1)
+        return format_memory_id(day, slug, max_seq + 1)
 
     # ---- 写入 ----
 

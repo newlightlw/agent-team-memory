@@ -12,11 +12,13 @@ from pathlib import Path
 from rich.console import Console
 
 from ..config import load_config
+from ..gitutil import get_git_config
 from ..models import (
     MemoryEntry,
     MemoryScope,
     MemoryType,
     MemoryValidationError,
+    author_slug,
     today_iso,
     validate_entry,
 )
@@ -61,10 +63,11 @@ def capture_cmd(
         ) from exc
 
     if not author:
-        # 未显式指定 author 时, 从记忆仓库的 .env 读默认作者
-        author = load_config(env_path=store.root / ".env").default_author
+        # .env 的 DEFAULT_AUTHOR → 否则 git config user.name 的 ascii slug
+        cfg = load_config(env_path=store.root / ".env")
+        author = cfg.default_author or author_slug(get_git_config("user.name"))
 
-    entry_id = store.next_id()
+    entry_id = store.next_id(author=author)
     body = _build_body(type_enum, title, note, from_file)
 
     entry = MemoryEntry(

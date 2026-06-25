@@ -15,7 +15,12 @@ from pathlib import Path
 from rich.console import Console
 
 from ..bridges import GLOBAL_BRIDGES
-from ..bridges.common import build_agents_section, build_listing, update_marked_section
+from ..bridges.common import (
+    build_agents_section,
+    build_listing,
+    install_aux_skills,
+    update_marked_section,
+)
 from ..config import Config, load_config
 from ..sources import load_all_entries
 from ..store import MemoryStore
@@ -66,6 +71,7 @@ def load_cmd(
     root: Path | None = None,
     link: bool = False,
     global_mode: bool = False,
+    aux_skill: bool = True,
     console: Console | None = None,
 ) -> list[Path]:
     """加载团队记忆到工具; 返回生成的文件路径列表。"""
@@ -86,6 +92,8 @@ def load_cmd(
             path = bridge(store, config, console=console)
             if path is not None:
                 written.append(path)
+        if aux_skill:
+            install_aux_skills(tools, console)
         return written
 
     # 项目级

@@ -14,7 +14,7 @@ from rich.console import Console
 from ..config import Config
 from ..sources import load_all_entries
 from ..store import MemoryStore
-from ..templating import render
+from ..templating import TEMPLATES_DIR, render
 
 __all__ = [
     "TOOL_HOMES",
@@ -26,6 +26,7 @@ __all__ = [
     "build_agents_section",
     "write_skill",
     "update_marked_section",
+    "install_aux_skills",
 ]
 
 # 各工具的全局配置根目录
@@ -187,3 +188,21 @@ def report_skip(tool: str, home: Path, console: Console) -> None:
     console.print(
         f"[yellow]⚠ {tool}: 未检测到 {home} (工具未安装/未配置), 跳过[/]"
     )
+
+
+def install_aux_skills(tools, console: Console) -> list[Path]:
+    """把 auto-commit-memory skill 装到各工具(随 load --global 分发)。"""
+    aux = TEMPLATES_DIR / "skills" / "auto-commit-memory" / "SKILL.md"
+    if not aux.exists():
+        console.print("[dim]未找到 auto-commit-memory 模板, 跳过辅助 skill[/]")
+        return []
+    content = aux.read_text(encoding="utf-8")
+    written: list[Path] = []
+    for tool in tools:
+        home = default_home(tool)
+        if not home.exists():
+            continue
+        path = write_skill(home, "auto-commit-memory", content)
+        console.print(f"[green]✓ {tool}[/] auto-commit skill: {path}")
+        written.append(path)
+    return written

@@ -80,3 +80,27 @@ def add_remote(path: Path, url: str, name: str = "origin") -> bool:
         return False
     result = run_git(path, "remote", "add", name, url)
     return result.returncode == 0
+
+
+def working_tree_dirty(path: Path) -> list[str]:
+    """返回未提交的变更文件列表(空 = 工作区干净)。"""
+    result = run_git(path, "status", "--porcelain")
+    if result.returncode != 0:
+        return []
+    return [line[3:].strip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def conflicted_files(path: Path) -> list[str]:
+    """返回处于冲突状态(unmerged)的文件列表。"""
+    result = run_git(path, "diff", "--name-only", "--diff-filter=U")
+    if result.returncode != 0:
+        return []
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def is_rebase_in_progress(path: Path) -> bool:
+    """是否处于未完成的 rebase 状态。"""
+    result = run_git(path, "status", "--porcelain")
+    if result.returncode != 0:
+        return False
+    return any("rebase" in line.lower() for line in result.stdout.splitlines())

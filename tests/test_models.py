@@ -8,7 +8,9 @@ from team_memory.models import (
     MemoryScope,
     MemoryStatus,
     MemoryType,
+    author_slug,
     format_memory_id,
+    memory_id_author,
     memory_id_date,
     parse_memory,
     serialize_memory,
@@ -20,7 +22,7 @@ from team_memory.models import (
 
 def make_entry(**kwargs):
     base = dict(
-        id="mem-20260623-001",
+        id="mem-20260623-vayne-001",
         type=MemoryType.DECISION,
         title="测试",
         author="vayne",
@@ -73,10 +75,13 @@ def test_validate_superseded_requires_target():
 
 
 def test_id_helpers():
-    assert format_memory_id("20260623", 1) == "mem-20260623-001"
-    assert format_memory_id("20260623", 42) == "mem-20260623-042"
-    assert memory_id_date("mem-20260623-042") == "20260623"
+    assert format_memory_id("20260623", "vayne", 1) == "mem-20260623-vayne-001"
+    assert format_memory_id("20260623", "vayne", 42) == "mem-20260623-vayne-042"
+    assert memory_id_date("mem-20260623-vayne-042") == "20260623"
+    assert memory_id_author("mem-20260623-vayne-042") == "vayne"
     assert memory_id_date("bad") is None
+    assert author_slug("Vayne Zhang") == "vaynezhang"
+    assert author_slug("张三") == ""
 
 
 def test_today_formats():
