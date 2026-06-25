@@ -122,6 +122,14 @@ def stats(store: MemoryStore) -> dict[str, Any]:
     return {"total": len(entries), "sources": sources, "types": types}
 
 
+def inbox_list(store: MemoryStore, status: str = "pending_review") -> list[dict[str, Any]]:
+    """列出 inbox 候选记忆(status='all' 不过滤)。"""
+    return [
+        _entry_to_dict(store, entry)
+        for entry in store.list_inbox(status_filter=status)
+    ]
+
+
 def _make_handler(store: MemoryStore) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args: Any) -> None:
@@ -186,7 +194,61 @@ def _make_handler(store: MemoryStore) -> type[BaseHTTPRequestHandler]:
             if route == "/api/stats":
                 self._send_json(stats(store))
                 return
+            if route == "/api/inbox":
+                self._send_json(
+                    inbox_list(store, qs.get("status", ["pending_review"])[0])
+                )
+                return
             self.send_error(404)
+
+        def _read_json(self) -> Any | None:
+            length = int(self.headers.get("Content-Length", 0) or 0)
+            if length == 0:
+                return None
+            try:
+                return json.loads(self.rfile.read(length).decode("utf-8"))
+            except Exception:
+                return None
+
+        def do_POST(self) -> None:
+            route = urlparse(self.path).path
+            body = self._read_json()
+            if not isinstance(body, dict):
+                self._send_json({"error": "需要 JSON body"}, 400)
+                return
+            try:
+                if route == "/api/propose":
+                    from ..commands.inbox_cmd import propose_cmd
+                    path = propose_cmd(
+                        title=body["title"], type=body["type"],
+                        scope=body.get("scope", "team"),
+                        author=body.get("author", ""), source=body.get("source", ""),
+                        role=body.get("role", ""),
+                        tags=tuple(body.get("tags", [])),
+                        related=tuple(body.get("related", [])),
+                        evidence=tuple(body.get("evidence", [])),
+                        confidence=body.get("confidence", "medium"),
+                        note=body.get("note", ""), root=store.root,
+                    )
+                    self._send_json({"ok": True, "path": str(path)})
+                elif route.startswith("/api/approve/"):
+                    mid = route.rsplit("/", 1)[-1]
+                    from ..commands.inbox_cmd import approve_cmd
+                    path = approve_cmd(mid, root=store.root)
+                    self._send_json({"ok": True, "id": mid, "path": str(path)})
+                elif route.startswith("/api/decline/"):
+                    mid = route.rsplit("/", 1)[-1]
+                    from ..commands.inbox_cmd import decline_cmd
+                    path = decline_cmd(
+                        mid, root=store.root, reason=body.get("reason", "")
+                    )
+                    self._send_json({"ok": True, "id": mid, "path": str(path)})
+                else:
+                    self.send_error(404)
+            except KeyError as exc:
+                self._send_json({"error": f"缺少字段: {exc}"}, 400)
+            except Exception as exc:
+                self._send_json({"error": str(exc)}, 400)
 
     return Handler
 
