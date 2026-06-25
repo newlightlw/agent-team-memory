@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 from rich.console import Console
@@ -65,6 +66,15 @@ def doctor_cmd(
     for entry in entries:
         if not entry.author:
             console.print(f"[yellow]⚠ {entry.id} 缺 author(无法追溯沉淀者)[/]")
+            problems += 1
+
+    # 6. 过期检查(expires < today)
+    today_str = date.today().isoformat()
+    for entry in entries:
+        if entry.expires and entry.expires < today_str:
+            console.print(
+                f"[yellow]⚠ {entry.id} 已过期(expires={entry.expires}), 需复查或废弃[/]"
+            )
             problems += 1
 
     if problems == 0:

@@ -2,6 +2,7 @@
 
 from .capture_cmd import capture_cmd
 from .doctor_cmd import doctor_cmd
+from .inbox_cmd import approve_cmd, decline_cmd, propose_cmd, review_cmd
 from .init_cmd import init_cmd
 from .index_cmd import index_cmd
 from .list_cmd import list_cmd, show_cmd
@@ -23,4 +24,8 @@ __all__ = [
     "doctor_cmd",
     "validate_cmd",
     "index_cmd",
+    "propose_cmd",
+    "review_cmd",
+    "approve_cmd",
+    "decline_cmd",
 ]

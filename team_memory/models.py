@@ -79,12 +79,17 @@ class MemoryScope(StrEnum):
     TEAM = "team"
     PROJECT = "project"
     MODULE = "module"
+    PERSONAL = "personal"
 
 
 class MemoryStatus(StrEnum):
     ACTIVE = "active"
+    PENDING_REVIEW = "pending_review"   # 候选记忆, 待人工 approve
     DEPRECATED = "deprecated"
     SUPERSEDED = "superseded"
+    DECLINED = "declined"               # candidate 被拒绝
+    CONFLICT = "conflict"               # 与其他记忆冲突
+    PRIVATE = "private"                 # 个人私有, 不入团队共享
 
 
 class MemoryParseError(ValueError):
@@ -108,8 +113,10 @@ _FIELD_ORDER = (
     "expires",
     "status",
     "superseded_by",
+    "confidence",
     "tags",
     "related",
+    "evidence",
 )
 _REQUIRED_FIELDS = ("id", "type", "scope", "author", "created", "status")
 
@@ -137,6 +144,8 @@ class MemoryEntry:
     superseded_by: str | None = None
     tags: tuple[str, ...] = ()
     related: tuple[str, ...] = ()
+    evidence: tuple[str, ...] = ()
+    confidence: str = ""
     body: str = ""
 
     def to_frontmatter_dict(self) -> dict[str, Any]:
@@ -159,6 +168,10 @@ class MemoryEntry:
             data["superseded_by"] = self.superseded_by
         if self.source:
             data["source"] = self.source
+        if self.evidence:
+            data["evidence"] = list(self.evidence)
+        if self.confidence:
+            data["confidence"] = self.confidence
         # 按稳定顺序输出
         return {key: data[key] for key in _FIELD_ORDER if key in data}
 
@@ -254,6 +267,8 @@ def parse_memory(text: str) -> MemoryEntry:
             superseded_by=superseded_by,
             tags=tuple(str(t) for t in (raw.get("tags") or [])),
             related=tuple(str(r) for r in (raw.get("related") or [])),
+            evidence=tuple(str(e) for e in (raw.get("evidence") or [])),
+            confidence=str(raw.get("confidence", "")).strip(),
             body=body,
         )
     except ValueError as exc:

@@ -9,13 +9,14 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from .models import (
     TYPE_DIR,
     MemoryEntry,
     MemoryParseError,
+    MemoryStatus,
     MemoryType,
     author_slug,
     format_memory_id,
@@ -23,6 +24,7 @@ from .models import (
     parse_memory,
     serialize_memory,
     today_compact,
+    today_iso,
 )
 
 __all__ = [
@@ -196,3 +198,71 @@ class MemoryStore:
         path = target_dir / _filename_for(entry, slug)
         path.write_text(serialize_memory(entry), encoding="utf-8")
         return path
+
+    # ---- inbox 候选记忆(AI/未验证经验, 待人工 approve) ----
+
+    def inbox_dir(self) -> Path:
+        return self.root / "inbox"
+
+    def propose_entry(self, entry: MemoryEntry, slug: str | None = None) -> Path:
+        """写候选记忆到 inbox/(entry.status 应为 pending_review)。"""
+        target = self.inbox_dir()
+        target.mkdir(parents=True, exist_ok=True)
+        path = target / _filename_for(entry, slug)
+        path.write_text(serialize_memory(entry), encoding="utf-8")
+        return path
+
+    def list_inbox(self, status_filter: str | None = None) -> list[MemoryEntry]:
+        """列出 inbox/ 的候选记忆; status_filter='all' 或 None 表示不过滤。"""
+        if status_filter == "all":
+            status_filter = None
+        target = self.inbox_dir()
+        if not target.exists():
+            return []
+        entries: list[MemoryEntry] = []
+        for md in sorted(target.glob("*.md")):
+            if md.name.startswith("_"):
+                continue
+            try:
+                entry = parse_memory(md.read_text(encoding="utf-8"))
+            except MemoryParseError:
+                continue
+            if status_filter and entry.status.value != status_filter:
+                continue
+            entries.append(entry)
+        return entries
+
+    def find_inbox_file(self, memory_id: str) -> Path | None:
+        """在 inbox/ 中按 id 查找 candidate 文件。"""
+        target = self.inbox_dir()
+        if not target.exists():
+            return None
+        for md in target.glob("*.md"):
+            try:
+                entry = parse_memory(md.read_text(encoding="utf-8"))
+            except MemoryParseError:
+                continue
+            if entry.id == memory_id:
+                return md
+        return None
+
+    def approve_entry(self, memory_id: str) -> Path:
+        """candidate(inbox) → 正式记忆(memory/{type}/), status 改 active。返回新路径。"""
+        src = self.find_inbox_file(memory_id)
+        if src is None:
+            raise ValueError(f"inbox 中未找到 candidate: {memory_id}")
+        entry = parse_memory(src.read_text(encoding="utf-8"))
+        approved = replace(entry, status=MemoryStatus.ACTIVE, updated=today_iso())
+        dest = self.save_entry(approved)   # 写入 memory/{type}/
+        src.unlink()                       # 从 inbox 移除
+        return dest
+
+    def decline_entry(self, memory_id: str) -> Path:
+        """candidate 标记 declined(保留在 inbox 供追溯)。"""
+        src = self.find_inbox_file(memory_id)
+        if src is None:
+            raise ValueError(f"inbox 中未找到 candidate: {memory_id}")
+        entry = parse_memory(src.read_text(encoding="utf-8"))
+        declined = replace(entry, status=MemoryStatus.DECLINED, updated=today_iso())
+        src.write_text(serialize_memory(declined), encoding="utf-8")
+        return src

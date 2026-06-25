@@ -15,7 +15,7 @@ import typer
 from rich.console import Console
 
 from . import __version__
-from .commands import capture_cmd, doctor_cmd, init_cmd, index_cmd, list_cmd, load_cmd, show_cmd, sync_cmd, update_cmd, validate_cmd, web_cmd
+from .commands import capture_cmd, doctor_cmd, inbox_cmd, init_cmd, index_cmd, list_cmd, load_cmd, show_cmd, sync_cmd, update_cmd, validate_cmd, web_cmd
 from .config import load_config
 from .models import MemoryValidationError
 from .store import NotAMemoryRepoError
@@ -266,6 +266,73 @@ def index(
     try:
         index_cmd(Path(root) if root else None, console=console)
     except NotAMemoryRepoError as exc:
+        console.print(f"[red]✗ {exc}[/]")
+        raise typer.Exit(1)
+
+
+@app.command(help="提交候选记忆到 inbox(AI/未验证经验, 待人工 approve)")
+def propose(
+    title: str = typer.Argument(..., help="候选标题"),
+    type: str = typer.Option(..., "-t", "--type", help="project/code/decision/error/skill"),
+    scope: str = typer.Option("team", "--scope"),
+    author: str = typer.Option(None, "-a", "--author"),
+    via: str = typer.Option("", "--via", help="来源工具 claude/codex/hermes/trae"),
+    role: str = typer.Option("", "--role"),
+    tags: str = typer.Option(None, "--tags"),
+    related: str = typer.Option(None, "--related"),
+    evidence: str = typer.Option(None, "--evidence", help="来源证据, 逗号分隔(PR/会议/bad case)"),
+    confidence: str = typer.Option("medium", "--confidence", help="low/medium/high"),
+    note: str = typer.Option(None, "--note"),
+    from_file: str = typer.Option(None, "--from-file"),
+    root: str = typer.Option(None, "-p", "--root"),
+) -> None:
+    try:
+        inbox_cmd.propose_cmd(
+            title, type, scope=scope, author=author or "", source=via, role=role,
+            tags=tuple(t.strip() for t in tags.split(",") if t.strip()) if tags else (),
+            related=tuple(r.strip() for r in related.split(",") if r.strip()) if related else (),
+            evidence=tuple(e.strip() for e in evidence.split(",") if e.strip()) if evidence else (),
+            confidence=confidence, note=note or "", from_file=from_file,
+            root=Path(root) if root else None, console=console,
+        )
+    except (NotAMemoryRepoError, ValueError, MemoryValidationError) as exc:
+        console.print(f"[red]✗ {exc}[/]")
+        raise typer.Exit(1)
+
+
+@app.command(help="审核 inbox 候选(列出 pending_review)")
+def review(
+    root: str = typer.Option(None, "-p", "--root"),
+    status: str = typer.Option("pending_review", "--status", help="pending_review/all/declined"),
+) -> None:
+    try:
+        inbox_cmd.review_cmd(Path(root) if root else None, status=status, console=console)
+    except NotAMemoryRepoError as exc:
+        console.print(f"[red]✗ {exc}[/]")
+        raise typer.Exit(1)
+
+
+@app.command(help="通过候选 → 转正式记忆(active)")
+def approve(
+    memory_id: str = typer.Argument(..., help="候选 id"),
+    root: str = typer.Option(None, "-p", "--root"),
+) -> None:
+    try:
+        inbox_cmd.approve_cmd(memory_id, Path(root) if root else None, console=console)
+    except (NotAMemoryRepoError, ValueError) as exc:
+        console.print(f"[red]✗ {exc}[/]")
+        raise typer.Exit(1)
+
+
+@app.command(help="拒绝候选(标 declined, 留 inbox 供追溯)")
+def decline(
+    memory_id: str = typer.Argument(..., help="候选 id"),
+    reason: str = typer.Option("", "--reason"),
+    root: str = typer.Option(None, "-p", "--root"),
+) -> None:
+    try:
+        inbox_cmd.decline_cmd(memory_id, Path(root) if root else None, reason=reason, console=console)
+    except (NotAMemoryRepoError, ValueError) as exc:
         console.print(f"[red]✗ {exc}[/]")
         raise typer.Exit(1)
 
