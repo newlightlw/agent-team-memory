@@ -169,7 +169,9 @@ def _try_link(src: Path, link_path: Path, console: Console) -> None:
         os.symlink(src, link_path)
         console.print(f"[green]✓[/] 创建软链: {link_path} -> {src}")
     except OSError as exc:
+        hint = "mklink" if os.name == "nt" else "ln -s"
         console.print(
             f"[yellow]⚠ 创建软链失败({exc}); 可手动: "
-            f"ln -s {src} {link_path}[/]"
+            f"{hint} {src} {link_path} "
+            f"(Windows 需管理员/开发者模式, 或不用 --link)[/]"
         )
