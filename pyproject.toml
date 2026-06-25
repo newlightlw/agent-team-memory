@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "team-memory"
-version = "0.1.0"
+version = "0.2.0"
 description = "团队 Agent Memory 共享系统 — 把 Cursor/Claude Code/Codex/Hermes 的记忆统一汇聚到 Gitea"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -21,6 +21,11 @@ dependencies = [
 dev = [
     "pytest>=8",
     "pytest-cov>=5",
+]
+mcp = [
+    # MCP Server(team_memory/mcp_server.py)用; 不装不影响 CLI/Web。
+    # 团队要用 AI 工具动态读写记忆时: pip install -e ".[mcp]"
+    "mcp>=1.0",
 ]
 
 [project.scripts]

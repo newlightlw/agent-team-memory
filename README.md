@@ -1,155 +1,131 @@
-# Team Memory — 团队 Agent Memory 共享系统
+# Team Memory — 团队 Agent 记忆共享系统
 
-把分散在 **Cursor / Claude Code / Codex / Hermes** 中的记忆，统一汇聚到 **Gitea**，
-让团队成员可以**加载团队记忆**并**沉淀经验**。
+> 让 **Claude Code / Codex / Trae / Hermes** 共享同一套团队记忆（Git 管理）。
+> 加载、沉淀、检索、可视化、AI 动态读写。Markdown 即真相，零向量依赖。
 
-> Phase 1 走纯 Git 路线：Markdown + YAML frontmatter 是唯一真相，Gitea 承载版本管理。
-> 不依赖向量数据库（早期 mem0 探索见 `test_mem0.py`，已不再使用）。
-
----
-
-## 为什么需要它
-
-平时同时用多个 AI coding 工具，每个工具都有自己的记忆（Cursor 的 `.cursorrules`、
-Claude Code 的 `CLAUDE.md`/`MEMORY.md`、Codex 的 `AGENTS.md`、Hermes 的 Skill），
-导致**上下文割裂**、经验无法复用、新人接手成本高。
-
-本系统把"团队认知"压缩成一套 **Git 管理的 Markdown 记忆仓库**，所有工具读同一套上下文，
-所有修改有版本、可审核、可回滚。
-
-设计依据见 [`docs/`](docs/)：
-- [`docs/团队记忆系统技术方案.md`](docs/团队记忆系统技术方案.md) — 四层记忆模型、五类记忆、Gitea 集成
-- [`docs/claude_cursor_hermes_memory_share_plan.md`](docs/claude_cursor_hermes_memory_share_plan.md) — 三阶段落地路径
+版本 0.2.0 · [49 测试通过] · Mac / Linux / Windows
 
 ---
 
-## 快速开始
+## 这是什么
+
+把分散在各 AI 工具里的团队经验，汇聚到 **Git 管理的 Markdown 仓库**，让所有工具和成员读同一套上下文。四种接入方式、15 个命令、Web 可视化、MCP Server、CI 校验。
+
+## 特性
+
+- **四种接入**：全局 skill / CLI / Web UI / **MCP Server**（AI 对话中动态查/写）
+- **15 命令**：`init` `capture` `propose` `review` `approve` `decline` `load` `sync` `list` `show` `web` `update` `doctor` `validate` `index`
+- **inbox 候选审核**：AI 经验先进 inbox（pending），人工 approve 才转正式——防 AI 错误污染团队记忆
+- **来源/版本追溯**：每条记忆带 `source`（哪个工具沉淀）/ `author` / git 版本历史
+- **id 防撞号**：`mem-日期-{author}-序号`，每人独立序号空间，多人并发不撞
+- **零向量依赖**：Markdown+Git 即真相（向量检索留 Phase 2）
+- **CI 校验**：Gitea Actions PR 自动校验 frontmatter / id 唯一性
+- **跨平台**：`onboard.py` + `python -m team_memory`（不依赖 PATH）
+
+---
+
+## 快速开始（单人 3 分钟）
 
 ```bash
-# 1. 安装(开发模式)
-cd agent-team-memory
-pip install -e ".[dev]"
-
-# 2. 在任意位置初始化一个团队记忆仓库(默认生成到 ./memory)
-team-memory init
-
-# 3. 沉淀一条记忆(自动生成 id、frontmatter、落盘)
-team-memory capture -t decision "记忆系统采用纯 Git 路线"
-
-# 4. 桥接到所有 AI 工具(Claude Code / Codex / Hermes / Trae 全局 skill)
-team-memory load --global
-
-# 5. (可选) 给单个项目生成项目级桥接(CLAUDE.md / AGENTS.md / .trae/rules)
-team-memory load -t ../my-project
-
-# 6. 同步到 Gitea(填好 .env 里的 GITEA_REMOTE_URL 后)
-team-memory sync
+git clone <repo> && cd agent-team-memory
+pip install -e .                        # 装；要用 MCP 改成 -e ".[mcp]"
+team-memory init -p ~/team-memory -n "团队名" -a <你的英文短名>
+team-memory capture "首条记忆" -t decision --via claude --note "..."
+team-memory web -p ~/team-memory        # 浏览器可视化 + 检索
 ```
 
 ---
 
-## 目录结构
+## 团队部署（给团队用）
 
-### 本仓库（工具本身）
+| 角色 | 文档（可交给 AI 工具执行） |
+|---|---|
+| **管理员**（一次性部署） | [docs/管理员操作清单.md](docs/管理员操作清单.md) |
+| **组员**（每人接入） | [docs/组员操作清单.md](docs/组员操作清单.md) |
+| 一页纸贴群 | [docs/快速参考卡.md](docs/快速参考卡.md) |
 
-```
-agent-team-memory/
-├── team_memory/          # Python CLI 工具
-│   ├── cli.py            # 入口: init / capture / load / sync
-│   ├── config.py         # 配置(.env → Config)
-│   ├── models.py         # MemoryEntry + frontmatter 解析
-│   ├── store.py          # 记忆仓库定位 + CRUD
-│   ├── sources.py        # 多源聚合(team-memory + tencent-openclaw)
-│   └── commands/         # 各命令实现
-├── templates/            # 记忆模板(init 时拷贝到记忆仓库)
-├── tests/                # pytest
-└── docs/                 # 方案文档
-```
-
-### 记忆仓库（`team-memory init` 生成，独立 git、推 Gitea）
-
-```
-memory/
-├── README.md             # 团队记忆说明
-├── CLAUDE.md             # 团队级 Agent 指令(各工具桥接的源头)
-├── rules/                # 团队规范(团队文化、代码标准)
-├── memory/
-│   ├── project/          # 项目记忆: 做什么、架构、约束
-│   ├── decisions/        # 决策记忆(ADR)
-│   ├── errors/           # 错误记忆: 现象、根因、排查、预防
-│   └── skills/           # Skill 记忆: 已验证的可复用流程
-├── templates/            # 模板
-└── .env                  # Gitea remote 配置(不入库)
+组员一键接入：
+```bash
+python scripts/onboard.py <Gitea仓库地址> <英文短名>
+# Windows: python scripts/onboard.py ...
 ```
 
 ---
 
-## 记忆数据模型
+## 命令速查（15）
 
-每条记忆统一为 YAML frontmatter + Markdown 正文，五类之一：
+| 命令 | 作用 |
+|---|---|
+| `init` | 初始化记忆仓库（骨架 + git + Gitea remote） |
+| `capture` | 沉淀**正式**记忆（已确认的经验） |
+| `propose` | 提交**候选**记忆到 inbox（AI/未验证，待审） |
+| `review` / `approve` / `decline` | 审核 inbox 候选 → 转正式 / 拒绝 |
+| `load --global` | 桥接到 4 工具（claude/codex/hermes/trae）+ 装 auto-commit skill |
+| `sync` | 同步 Gitea（pull --rebase + push，含冲突指引） |
+| `list` / `show` | 查看记忆（表格 / 详情+版本历史） |
+| `web` | Web 可视化（检索框 / 来源 / 时间 / 版本） |
+| `update` | 更新记忆（原子；`--supersede` 标记废弃） |
+| `doctor` / `validate` | 诊断 / 校验（CI 同款，坏文件/重复 id/过期/悬空引用） |
+| `index` | 生成各类型 `_index.md` 索引 |
 
-| 类型 | 目录 | 何时写 |
+> 对话里说"**提交下**" → `auto-commit-memory` skill 自动总结、确认后提交。
+
+---
+
+## 四种接入方式
+
+| 方式 | 场景 | 启用 |
 |---|---|---|
-| `project` | `memory/project/` | 项目范围/架构变化时 |
-| `decision` | `memory/decisions/` | 做出重要技术决策后(ADR) |
-| `error` | `memory/errors/` | 解决非平凡错误后 |
-| `skill` | `memory/skills/` | 验证可复用流程后 |
+| **MCP Server** | AI 对话中动态 search/get/propose/approve | `pip install -e ".[mcp]"` → 配置见 [docs/MCP接入.md](docs/MCP接入.md) |
+| 全局 skill | 会话启动加载团队上下文 | `team-memory load --global` |
+| CLI | 人工命令行操作 | `pip install -e .` |
+| Web UI | 浏览器可视化 + 检索 | `team-memory web` |
 
-字段：`id`(mem-YYYYMMDD-NNN)、`type`、`scope`(team/project/module)、`author`、`role`、
-`created`、`updated`、`expires`、`status`(active/deprecated/superseded)、`tags`、`related`。
-
-> **废弃不删除**：更新 `status` 并链接到新记忆，保留旧的作为审计记录。
+四种方式都指向**同一个 Git 仓库**，可组合用。
 
 ---
 
-## 工具桥接（全局注册）
+## 核心工作流：capture vs propose
 
-`team-memory load --global` 一次把记忆仓库注册到所有 AI 工具，所有项目自动可用：
+- **`capture`（正式）**：你**已确认**的经验 → 直接进 `memory/`（active）
+- **`propose`（候选）**：**AI 自动总结 / 未验证**的经验 → 先进 `inbox/`（pending_review）→ `review` → `approve` 转正式
 
-| 工具 | 全局位置 | 方式 |
-|---|---|---|
-| Claude Code | `~/.claude/skills/team-memory/SKILL.md` | skill |
-| Codex | `~/.codex/AGENTS.md` | 标记段（幂等，不破坏已有内容） |
-| Hermes | `~/.hermes/skills/team-memory/SKILL.md` | skill（Hermes 只支持全局） |
-| Trae | `~/.trae/skills/team-memory/SKILL.md` | skill |
-
-未安装的工具会自动跳过。换记忆仓库路径后重跑 `load --global -p <新路径>` 即可更新所有工具的指向。
-
-项目级桥接（不加 `--global`）：在指定项目生成 `CLAUDE.md` / `AGENTS.md` / `.trae/rules/team-memory.md`。
-
----
-
-## 与现有 `sync-remote-memory` 的关系
-
-你已有一套在跑的远程同步脚本（同步到 tencent-openclaw）。本系统**与之并存**：
-- `team-memory` 作为**团队共享层**（本工具管理，推 Gitea）
-- `tencent-openclaw` 作为**另一类源**（沿用现有脚本，不重写）
-- `sources.py` 提供多源注册表，`load` 可聚合读取所有源（在 `.env` 配置 `TENCENT_OPENCLAW_PATH` 后启用）
+> **原则**：AI 可以 propose（候选），但**不直接写正式记忆**；approve 由人触发。
+> 这样既给 AI 动态贡献能力，又守住人工审核关。
 
 ---
 
 ## 设计原则
 
-1. **Memory 先文件化，后服务化** — Markdown + Git，不急着上向量库/Memory Server
-2. **Memory 是压缩后的共识，不是聊天记录** — 只存目标/决策/约束/经验
-3. **Agent 可建议写，但不默认改核心记忆** — 写入走 Git + 人工审核
-4. **新写入不在当前 session 生效** — 写入后下个会话才加载，避免污染当前对话
-5. **secrets 全部 `.gitignore`** — `.env`、token、db 文件绝不入库
+1. **Git 是唯一真相**——Markdown 是事实来源；Web/MCP/skill 都是派生视图
+2. **新写入下个会话才生效**——不污染当前对话
+3. **废弃不删除**——`status: superseded` + `superseded_by` 链接新记忆
+4. **AI 可建议写，不自动覆盖核心记忆**——project/decisions 走人工审核
+5. **secrets 不入库**——`.env` / token / db 全部 gitignore
 
 ---
 
-## 路线图
+## 文档索引
 
-- **Phase 1（已完成）**：纯 Git，4 核心命令（init/capture/load/sync），**Claude / Codex / Hermes / Trae 四工具全局桥接**
-- **Phase 1.5（下轮）**：`validate`/`index`/`search`（关键字）命令，Gitea CI 校验，项目级桥接增强
-- **Phase 2（未来）**：可选 mem0 向量语义检索（MCP 只读层），Git 仍是唯一真相
+| 文档 | 用途 |
+|---|---|
+| [系统说明.md](docs/系统说明.md) | 原理 / 工作流 / 何时触发存储与共享 |
+| [管理员操作清单.md](docs/管理员操作清单.md) | 一次性部署（建仓库/推工具/CI/验收） |
+| [组员操作清单.md](docs/组员操作清单.md) | 接入 + 日常使用 |
+| [快速参考卡.md](docs/快速参考卡.md) | 一页纸贴群 |
+| [MCP接入.md](docs/MCP接入.md) | AI 工具动态读写（MCP 配置） |
+| [新人接入.md](docs/新人接入.md) | 详细 Q&A |
+| [Gitea本地部署与迁移指南.md](docs/Gitea本地部署与迁移指南.md) | Gitea 底座部署 |
+| [team_memory_gateway_for_claude_code.md](docs/team_memory_gateway_for_claude_code.md) | Gateway 方案（设计参考） |
 
 ---
 
 ## 开发
 
 ```bash
-pip install -e ".[dev]"
-pytest                    # 跑测试
-pytest --cov=team_memory  # 覆盖率
+pip install -e ".[dev]"      # 含 pytest
+pip install -e ".[mcp]"      # 含 MCP（可选）
+pytest                       # 49 用例
 ```
+
+Python ≥ 3.11。依赖：`typer` `rich` `pyyaml`（核心）；`mcp`（可选，仅 MCP Server）。

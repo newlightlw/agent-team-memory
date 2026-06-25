@@ -78,6 +78,10 @@ def main() -> None:
     print(f"  可视化: {py} -m team_memory web -p {mem_dir}")
     print(f"  同步:   {py} -m team_memory sync -p {mem_dir}")
     print("  对话中: 直接说'提交下' → auto-commit-memory 自动总结并确认提交")
+    print()
+    print("【可选】让 AI 工具动态读写记忆(MCP):")
+    print(f"  {py} -m pip install -e '{tool_dir}[mcp]'")
+    print("  配置见 docs/MCP接入.md (Claude Code/Cursor/Codex/Hermes)")
 
 
 if __name__ == "__main__":

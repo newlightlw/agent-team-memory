@@ -58,4 +58,8 @@ cat <<EOF
   可视化: team-memory web -p $MEM_DIR   (浏览器自动打开)
   同步:  team-memory sync -p $MEM_DIR   (pull + push Gitea)
   对话中: 直接说"提交下" → auto-commit-memory 自动总结并确认提交
+
+【可选】让 AI 工具动态读写记忆(MCP):
+  pip install -e "${TOOL_DIR}[mcp]"
+  配置见 docs/MCP接入.md (Claude Code/Cursor/Codex/Hermes)
 EOF
