@@ -8,7 +8,7 @@ from team_memory.store import MARKER_FILE, MemoryStore
 
 def test_init_creates_full_structure(tmp_path):
     root = tmp_path / "repo"
-    init_cmd(root, team_name="测试团队", author="vayne")
+    init_cmd(root, team_name="测试团队", author="alice")
 
     # 标记 + 骨架
     assert (root / MARKER_FILE).exists()

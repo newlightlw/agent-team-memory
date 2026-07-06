@@ -22,11 +22,11 @@ def test_assert_valid_memory_repo_rejects_tool_repo():
 
 def test_save_cmd_in_memory_repo(tmp_path):
     mem = tmp_path / "team-memory"
-    init_cmd(mem, team_name="T", author="liuy")
+    init_cmd(mem, team_name="T", author="bob")
     path = save_cmd(
         "MoE 测试",
         "skill",
-        author="liuy",
+        author="bob",
         source="claude",
         note="测试 save 命令",
         root=mem,

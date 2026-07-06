@@ -35,7 +35,7 @@ def save_cmd(
     do_sync: bool = False,
     console: Console | None = None,
 ) -> Path:
-    """沉淀一条记忆并在记忆仓库内 commit; 可选 sync 推送到 Gitea。"""
+    """沉淀一条记忆并在记忆仓库内 commit; 可选 sync 推送到 Git 远端。"""
     console = console or Console()
     mem_root = resolve_memory_root(root)
     path = capture_cmd(

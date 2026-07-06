@@ -13,7 +13,7 @@ description: |
 
 **数据仓库路径**: `{root}`
 
-**Gitea 目标**: `{memory_remote}`（`team-memory` 数据仓库, **不是** `agent-team-memory` 工具仓库）
+**Git 远端**: `{memory_remote}`（`team-memory` 数据仓库, **不是** `agent-team-memory` 工具仓库）
 
 **默认作者**: `{author}`
 
@@ -91,7 +91,7 @@ description: |
 {python} -m team_memory save "<标题>" -t <类型> --via <当前工具> -a {author} -p "{root}" --note "<总结正文>"
 ```
 
-  如需立即推送到 Gitea, 在用户明确要求同步时加 `--sync`:
+  如需立即推送到 Git 远端, 在用户明确要求同步时加 `--sync`:
 
 ```bash
 {python} -m team_memory save "<标题>" -t <类型> --via <当前工具> -a {author} -p "{root}" --note "<总结正文>" --sync

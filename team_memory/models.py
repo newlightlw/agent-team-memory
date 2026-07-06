@@ -6,7 +6,7 @@
     id: mem-20260623-001
     type: decision
     scope: team
-    author: vayne
+    author: alice
     created: 2026-06-23
     status: active
     tags: [architecture]
@@ -54,7 +54,7 @@ __all__ = [
 ]
 
 
-# 记忆 id 形如 mem-20260623-vayne-001 (含 author, 每人独立序号空间防多人撞号)
+# 记忆 id 形如 mem-20260623-alice-001 (含 author, 每人独立序号空间防多人撞号)
 MEMORY_ID_PATTERN = re.compile(r"^mem-(\d{8})-([a-z0-9_]+)-(\d{3})$")
 
 # 五类记忆 -> 落盘目录名
@@ -197,7 +197,7 @@ def author_slug(author: str) -> str:
 
 
 def format_memory_id(date_compact: str, author: str, seq: int) -> str:
-    """生成形如 mem-20260623-vayne-001 的记忆 id(author 入 id, 每人独立序号空间)。"""
+    """生成形如 mem-20260623-alice-001 的记忆 id(author 入 id, 每人独立序号空间)。"""
     slug = author_slug(author)
     if not slug:
         raise ValueError(

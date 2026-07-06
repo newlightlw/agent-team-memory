@@ -8,7 +8,7 @@
   Mac/Linux: python3 scripts/onboard.py <记忆仓库git地址> <你的英文短名>
   Windows:   python  scripts/onboard.py <记忆仓库git地址> <你的英文短名>
 示例:
-  python scripts/onboard.py http://gitea.example.com/team/team-memory.git zhang3
+  python scripts/onboard.py https://git.example.com/team/team-memory.git zhang3
 """
 from __future__ import annotations
 

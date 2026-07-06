@@ -14,7 +14,7 @@ def test_resolve_web_bind_from_env(tmp_path):
             [
                 "WEB_HOST=0.0.0.0",
                 "WEB_PORT=8765",
-                "WEB_PUBLIC_URL=http://192.168.1.66:8765",
+                "WEB_PUBLIC_URL=https://git.example.com:8765",
             ]
         ),
         encoding="utf-8",
@@ -23,7 +23,7 @@ def test_resolve_web_bind_from_env(tmp_path):
     host, port, url = resolve_web_bind(root)
     assert host == "0.0.0.0"
     assert port == 8765
-    assert url == "http://192.168.1.66:8765"
+    assert url == "https://git.example.com:8765"
 
 
 def test_resolve_web_bind_cli_overrides_env(tmp_path):
@@ -39,6 +39,6 @@ def test_resolve_web_bind_cli_overrides_env(tmp_path):
 
 
 def test_format_port_in_use_message():
-    msg = format_port_in_use_message(8765, "http://192.168.1.66:8765")
+    msg = format_port_in_use_message(8765, "https://git.example.com:8765")
     assert "8765" in msg
-    assert "http://192.168.1.66:8765" in msg
+    assert "https://git.example.com:8765" in msg

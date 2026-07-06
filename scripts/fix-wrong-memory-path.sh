@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# liwei / 新组员在 Linux 服务器上一键修复「不是记忆仓库根」类错误。
+# 新组员在 Linux/macOS 上一键修复「不是记忆仓库根」类错误。
 # 用法: bash scripts/fix-wrong-memory-path.sh <英文短名> [记忆仓库路径]
 set -euo pipefail
 
 AUTHOR="${1:?用法: $0 <英文短名> [记忆仓库路径]}"
 MEM_DIR="${2:-${TEAM_MEMORY_ROOT:-$HOME/team-memory}}"
-GITEA="${GITEA_URL:-http://192.168.1.66:3000/ai-team/team-memory.git}"
+GITEA="${GITEA_URL:-https://git.example.com/org/team-memory.git}"
 TOOL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PY="${PYTHON:-python3}"
 
@@ -27,4 +27,4 @@ echo "✓ 完成。以后所有命令必须带: -p $MEM_DIR"
 echo "  示例: $PY -m team_memory save \"标题\" -t skill --via claude -a $AUTHOR -p $MEM_DIR --note \"...\""
 echo "  错误示例(勿用): -p $TOOL_DIR/team_memory"
 echo ""
-echo "Claude Code: 退出并新开一个会话, 再说「提交一下」"
+echo "AI 工具: 退出并新开一个会话, 再说「提交一下」"

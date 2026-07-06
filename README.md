@@ -1,132 +1,244 @@
 # Team Memory — 团队 Agent 记忆共享系统
 
-> 让 **Claude Code / Codex / Trae / Hermes** 共享同一套团队记忆（Git 管理）。
-> 加载、沉淀、检索、可视化、AI 动态读写。Markdown 即真相，零向量依赖。
+让 Claude Code / Codex / Cursor / Trae / Hermes 等 AI coding 工具共享同一套团队长期记忆。
 
-版本 0.2.2 · Mac / Linux / Windows
+Team Memory 用 **Git 管理的 Markdown 仓库** 保存项目背景、技术决策、错误复盘和可复用流程。它不是聊天记录库，也不强依赖向量数据库；Markdown 是唯一真相，Git 提供版本、审核和回滚。
 
----
+版本 0.2.3 · Python 3.11+ · macOS / Linux / Windows
 
-## 这是什么
+## 解决什么问题
 
-把分散在各 AI 工具里的团队经验，汇聚到 **Git 管理的 Markdown 仓库**，让所有工具和成员读同一套上下文。四种接入方式、15 个命令、Web 可视化、MCP Server、CI 校验。
+当团队同时使用多个 AI coding 工具时，经验很容易散落在不同会话和不同工具里：
 
-## 特性
+- Claude Code 知道的上下文，Codex 不知道。
+- 这周解决过的错误，下周换个工具又要重新解释。
+- 架构约束、历史决策、踩坑记录没有稳定入口。
+- AI 可以总结经验，但不应该直接把未验证内容写成团队事实。
 
-- **四种接入**：全局 skill / CLI / Web UI / **MCP Server**（AI 对话中动态查/写）
-- **15 命令**：`init` `capture` `propose` `review` `approve` `decline` `load` `sync` `list` `show` `web` `update` `doctor` `validate` `index`
-- **inbox 候选审核**：AI 经验先进 inbox（pending），人工 approve 才转正式——防 AI 错误污染团队记忆
-- **来源/版本追溯**：每条记忆带 `source`（哪个工具沉淀）/ `author` / git 版本历史
-- **id 防撞号**：`mem-日期-{author}-序号`，每人独立序号空间，多人并发不撞
-- **零向量依赖**：Markdown+Git 即真相（向量检索留 Phase 2）
-- **CI 校验**：Gitea Actions PR 自动校验 frontmatter / id 唯一性
-- **跨平台**：`onboard.py` + `python -m team_memory`（不依赖 PATH）
+Team Memory 把这些经验沉淀为一个独立的 Git 仓库，让人和 Agent 都能读取、提交候选、审核和同步。
 
----
+## 核心特性
 
-## 快速开始（单人 3 分钟）
+- **Git + Markdown**：记忆文件人类可读、AI 可读、可 review、可回滚。
+- **五类记忆**：`project` / `code` / `decision` / `error` / `skill`。
+- **候选审核**：AI 产出先进 `inbox/`，人工 `approve` 后才进入正式 `memory/`。
+- **跨工具桥接**：支持 Claude Code、Codex、Hermes、Trae 的全局 skill / 规则入口。
+- **MCP Server**：AI 工具可在对话中动态 `search/get/list/propose/approve`。
+- **Web UI**：本地浏览、搜索、查看来源和版本历史。
+- **安全保护**：防止把团队记忆误写进工具源码仓库；secrets 默认不入库。
+
+## 5 分钟本地体验
+
+这条路径不需要远端仓库，适合第一次试用。
 
 ```bash
-git clone <repo> && cd agent-team-memory
-pip install -e .                        # 装；要用 MCP 改成 -e ".[mcp]"
-team-memory init -p ~/team-memory -n "团队名" -a <你的英文短名>
-team-memory capture "首条记忆" -t decision --via claude --note "..."
-team-memory web -p ~/team-memory        # 浏览器可视化 + 检索
+git clone <THIS_REPO_URL>
+cd agent-team-memory
+python -m pip install -e .
+
+# 初始化一个本地记忆仓库
+team-memory init -p ~/team-memory -n "Demo Team" -a alice
+
+# 写一条正式记忆。注意: 不在 agent-team-memory 目录里写记忆, 要用 -p 指向数据仓库
+team-memory capture "采用 Git 管理团队记忆" \
+  -t decision \
+  --via codex \
+  -p ~/team-memory \
+  --note "团队长期记忆使用 Markdown 文件保存, Git 作为版本和审核机制。"
+
+# 查看
+team-memory list -p ~/team-memory
+team-memory web -p ~/team-memory
 ```
 
----
+如果你想让“写记忆 + git commit”一步完成，用 `save`：
 
-## 团队部署（给团队用）
-
-| 角色 | 文档（可交给 AI 工具执行） |
-|---|---|
-| **管理员**（一次性部署） | [docs/管理员操作清单.md](docs/管理员操作清单.md) |
-| **组员**（每人接入） | [docs/组员操作清单.md](docs/组员操作清单.md) |
-| 一页纸贴群 | [docs/快速参考卡.md](docs/快速参考卡.md) |
-
-组员一键接入：
 ```bash
-python scripts/onboard.py <Gitea仓库地址> <英文短名>
-# Windows: python scripts/onboard.py ...
+team-memory save "记录一次可复用流程" \
+  -t skill \
+  --via claude \
+  -p ~/team-memory \
+  --note "任务完成后, 只沉淀未来会复用的结论, 不保存完整聊天记录。"
 ```
 
+## 团队部署
+
+团队通常需要两个仓库：
+
+```text
+agent-team-memory  工具仓库：CLI / Web / MCP / 模板 / 文档
+team-memory        数据仓库：团队记忆 Markdown 文件
+```
+
+管理员初始化：
+
+```bash
+git clone <TOOL_REPO>
+cd agent-team-memory
+python -m pip install -e .
+
+team-memory init -p ~/team-memory -n "<TEAM_NAME>" -a <admin>
+cd ~/team-memory
+git remote add origin <MEMORY_REPO>
+git add .
+git commit -m "init team memory"
+git push -u origin HEAD
+```
+
+成员接入：
+
+```bash
+git clone <TOOL_REPO>
+cd agent-team-memory
+python scripts/onboard.py <MEMORY_REPO> <author>
+```
+
+更多细节：
+
+| 文档 | 用途 |
+| --- | --- |
+| [管理员操作清单.md](docs/管理员操作清单.md) | 团队管理员初始化和验收 |
+| [组员操作清单.md](docs/组员操作清单.md) | 成员接入和日常使用 |
+| [快速参考卡.md](docs/快速参考卡.md) | 常用命令速查 |
+
+## 记忆类型
+
+| 类型 | 目录 | 适合记录 |
+| --- | --- | --- |
+| `project` | `memory/project/` | 项目目标、范围、架构、约束 |
+| `code` | `memory/code/` | 代码结构、入口、模块关系、坑点 |
+| `decision` | `memory/decisions/` | 技术选型、架构决策、ADR |
+| `error` | `memory/errors/` | 错误现象、根因、修复方案 |
+| `skill` | `memory/skills/` | 可复用流程、操作手册、实践方法 |
+
+每条记忆都是带 frontmatter 的 Markdown：
+
+```markdown
+---
+id: mem-20260706-alice-001
+type: decision
+scope: team
+author: alice
+source: codex
+created: 2026-07-06
+status: active
+tags: [memory, git]
+related: []
 ---
 
-## 命令速查（15）
+# 采用 Git 管理团队记忆
 
-| 命令 | 作用 |
-|---|---|
-| `init` | 初始化记忆仓库（骨架 + git + Gitea remote） |
-| `capture` | 沉淀**正式**记忆（已确认的经验） |
-| `save` | **capture + git commit**（「提交一下」推荐；防写错仓库） |
-| `propose` | 提交**候选**记忆到 inbox（AI/未验证，待审） |
-| `review` / `approve` / `decline` | 审核 inbox 候选 → 转正式 / 拒绝 |
-| `load --global` | 桥接到 4 工具（claude/codex/hermes/trae）+ 装 auto-commit skill |
-| `sync` | 同步 Gitea（pull --rebase + push，含冲突指引） |
-| `list` / `show` | 查看记忆（表格 / 详情+版本历史） |
-| `web` | Web 可视化（检索框 / 来源 / 时间 / 版本） |
-| `update` | 更新记忆（原子；`--supersede` 标记废弃） |
-| `doctor` / `validate` | 诊断 / 校验（CI 同款，坏文件/重复 id/过期/悬空引用） |
-| `index` | 生成各类型 `_index.md` 索引 |
+## Context
+...
 
-> 对话里说"**提交下**" → `auto-commit-memory` skill 自动总结、确认后提交。
+## Decision
+...
+```
 
----
+## 工作流
 
-## 四种接入方式
+```text
+1. 开始任务前, Agent/成员读取相关记忆
+2. 完成任务后, 提炼未来会复用的结论
+3. 已确认经验用 capture/save 写入 memory/
+4. AI 自动总结或未验证经验用 propose 写入 inbox/
+5. 人工 review 后 approve/decline
+6. commit + sync 推送到团队远端
+7. 下一个会话加载新记忆
+```
 
-| 方式 | 场景 | 启用 |
-|---|---|---|
-| **MCP Server** | AI 对话中动态 search/get/propose/approve | `pip install -e ".[mcp]"` → 配置见 [docs/MCP接入.md](docs/MCP接入.md) |
-| 全局 skill | 会话启动加载团队上下文 | `team-memory load --global` |
-| CLI | 人工命令行操作 | `pip install -e .` |
-| Web UI | 浏览器可视化 + 检索 | `team-memory web` |
+`capture` 和 `propose` 的区别：
 
-四种方式都指向**同一个 Git 仓库**，可组合用。
+| 命令 | 写到哪里 | 何时使用 |
+| --- | --- | --- |
+| `capture` | `memory/` | 人已确认的正式经验 |
+| `save` | `memory/` + git commit | 想一步完成写入和提交 |
+| `propose` | `inbox/` | AI 自动总结、证据不足、待审核内容 |
 
----
+## 常用命令
 
-## 核心工作流：capture vs propose
+```bash
+# 初始化数据仓库
+team-memory init -p ~/team-memory -n "Demo Team" -a alice
 
-- **`capture`（正式）**：你**已确认**的经验 → 直接进 `memory/`（active）
-- **`propose`（候选）**：**AI 自动总结 / 未验证**的经验 → 先进 `inbox/`（pending_review）→ `review` → `approve` 转正式
+# 正式记忆
+team-memory capture "标题" -t decision --via codex -p ~/team-memory --note "..."
+team-memory save "标题" -t skill --via claude -p ~/team-memory --note "..."
 
-> **原则**：AI 可以 propose（候选），但**不直接写正式记忆**；approve 由人触发。
-> 这样既给 AI 动态贡献能力，又守住人工审核关。
+# 候选记忆
+team-memory propose "标题" -t error --via claude -p ~/team-memory --note "..."
+team-memory review -p ~/team-memory
+team-memory approve <memory-id> -p ~/team-memory
+team-memory decline <memory-id> -p ~/team-memory --reason "证据不足"
 
----
+# 查看和维护
+team-memory list -p ~/team-memory
+team-memory show <memory-id> -p ~/team-memory
+team-memory update <memory-id> --note "补充说明" -p ~/team-memory
+team-memory index -p ~/team-memory
+team-memory doctor -p ~/team-memory
+team-memory validate -p ~/team-memory
+
+# 同步和可视化
+team-memory sync -p ~/team-memory
+team-memory web -p ~/team-memory
+
+# 桥接到本机 AI 工具
+team-memory load --global -p ~/team-memory
+team-memory check-bridges -p ~/team-memory
+```
+
+## MCP 接入
+
+安装可选依赖：
+
+```bash
+python -m pip install -e ".[mcp]"
+TEAM_MEMORY_ROOT=~/team-memory python -m team_memory.mcp_server
+```
+
+MCP tools：
+
+```text
+search_memory(query, top_k=10)
+get_memory(memory_id)
+list_memories(type="")
+propose_memory(title, type, source="", author="", confidence="medium", note="")
+list_inbox(status="pending_review")
+approve_memory(memory_id)
+```
+
+配置示例见 [MCP接入.md](docs/MCP接入.md)。
 
 ## 设计原则
 
-1. **Git 是唯一真相**——Markdown 是事实来源；Web/MCP/skill 都是派生视图
-2. **新写入下个会话才生效**——不污染当前对话
-3. **废弃不删除**——`status: superseded` + `superseded_by` 链接新记忆
-4. **AI 可建议写，不自动覆盖核心记忆**——project/decisions 走人工审核
-5. **secrets 不入库**——`.env` / token / db 全部 gitignore
+1. **Git 是唯一真相**：Web、MCP、skill 都是派生视图。
+2. **记忆是压缩后的共识**：不保存完整聊天记录。
+3. **AI 可以建议，正式记忆要审核**：候选先进 `inbox/`。
+4. **新写入下个会话生效**：避免当前对话自我污染。
+5. **废弃不删除**：用 `status: superseded` 和 `superseded_by` 追踪替代关系。
+6. **secrets 不入库**：`.env`、token、密码、数据库文件默认忽略。
 
----
-
-## 文档索引
+## 文档
 
 | 文档 | 用途 |
-|---|---|
-| [系统说明.md](docs/系统说明.md) | 原理 / 工作流 / 何时触发存储与共享 |
-| [管理员操作清单.md](docs/管理员操作清单.md) | 一次性部署（建仓库/推工具/CI/验收） |
-| [组员操作清单.md](docs/组员操作清单.md) | 接入 + 日常使用 |
-| [快速参考卡.md](docs/快速参考卡.md) | 一页纸贴群 |
-| [MCP接入.md](docs/MCP接入.md) | AI 工具动态读写（MCP 配置） |
-| [新人接入.md](docs/新人接入.md) | 详细 Q&A |
-| [Gitea本地部署与迁移指南.md](docs/Gitea本地部署与迁移指南.md) | Gitea 底座部署 |
-| [team_memory_gateway_for_claude_code.md](docs/team_memory_gateway_for_claude_code.md) | Gateway 方案（设计参考） |
-
----
+| --- | --- |
+| [系统说明.md](docs/系统说明.md) | 原理、架构、工作流 |
+| [管理员操作清单.md](docs/管理员操作清单.md) | 团队管理员部署 |
+| [组员操作清单.md](docs/组员操作清单.md) | 成员接入和日常使用 |
+| [新人接入.md](docs/新人接入.md) | 更详细的新成员 Q&A |
+| [快速参考卡.md](docs/快速参考卡.md) | 常用命令速查 |
+| [MCP接入.md](docs/MCP接入.md) | MCP Server 配置 |
 
 ## 开发
 
 ```bash
-pip install -e ".[dev]"      # 含 pytest
-pip install -e ".[mcp]"      # 含 MCP（可选）
-pytest                       # 49 用例
+python -m pip install -e ".[dev]"
+PYTHONPATH=. pytest
 ```
 
-Python ≥ 3.11。依赖：`typer` `rich` `pyyaml`（核心）；`mcp`（可选，仅 MCP Server）。
+当前测试：58 个用例，覆盖模型、存储、CLI、inbox、Web、MCP、桥接和安全保护。
+
+## License
+
+MIT

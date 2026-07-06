@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 新人接入团队记忆仓库 — 一键脚本
 # 用法: ./scripts/onboard.sh <记忆仓库git地址> <你的英文短名>
-# 示例: ./scripts/onboard.sh http://gitea.example.com/team/team-memory.git zhang3
+# 示例: ./scripts/onboard.sh https://git.example.com/team/team-memory.git zhang3
 set -e
 
 REPO_URL="$1"
@@ -9,7 +9,7 @@ AUTHOR="${2:-}"
 
 if [ -z "$REPO_URL" ]; then
   echo "用法: $0 <记忆仓库git地址> <你的英文短名(用于id, 如 zhang3)>"
-  echo "示例: $0 http://gitea.example.com/team/team-memory.git zhang3"
+  echo "示例: $0 https://git.example.com/team/team-memory.git zhang3"
   exit 1
 fi
 
@@ -56,7 +56,7 @@ cat <<EOF
   沉淀:  team-memory capture "标题" -t decision --via claude -p $MEM_DIR
   查看:  team-memory list -p $MEM_DIR
   可视化: team-memory web -p $MEM_DIR   (浏览器自动打开)
-  同步:  team-memory sync -p $MEM_DIR   (pull + push Gitea)
+  同步:  team-memory sync -p $MEM_DIR   (pull + push Git 远端)
   对话中: 直接说"提交下" → auto-commit-memory 自动总结并确认提交
 
 【可选】让 AI 工具动态读写记忆(MCP):

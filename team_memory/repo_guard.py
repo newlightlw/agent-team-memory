@@ -49,7 +49,7 @@ def assert_valid_memory_repo(root: Path) -> None:
         remote = cfg.gitea_remote_url
     if remote and TOOL_REPO_NAME in remote:
         raise ValueError(
-            f"Gitea remote 指向工具仓库({remote}), 记忆应推到 {MEMORY_REPO_NAME} 仓库。\n"
+            f"Git remote 指向工具仓库({remote}), 记忆应推到 {MEMORY_REPO_NAME} 仓库。\n"
             f"请检查 {resolved}/.env 的 GITEA_REMOTE_URL。"
         )
 

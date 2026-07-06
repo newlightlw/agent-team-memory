@@ -36,7 +36,7 @@ def test_bridges_doctor_reports_missing_skills(tmp_path, monkeypatch):
     mem = tmp_path / "team-memory"
     fake_claude = tmp_path / "claude-home"
     fake_claude.mkdir()
-    init_cmd(mem, team_name="T", author="liuy")
+    init_cmd(mem, team_name="T", author="bob")
     _patch_claude_home(monkeypatch, fake_claude, tmp_path)
 
     code = bridges_doctor_cmd(mem, tools=("claude",), console=None)
@@ -47,7 +47,7 @@ def test_bridges_doctor_ok_when_skills_installed(tmp_path, monkeypatch):
     mem = tmp_path / "team-memory"
     fake_claude = tmp_path / "claude-home"
     fake_claude.mkdir()
-    init_cmd(mem, team_name="T", author="liuy")
+    init_cmd(mem, team_name="T", author="bob")
     root = str(mem.resolve())
     write_skill(
         fake_claude,

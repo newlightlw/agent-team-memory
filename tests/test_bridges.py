@@ -18,8 +18,8 @@ from team_memory.store import MemoryStore
 
 def _setup(tmp_path: Path):
     root = tmp_path / "repo"
-    init_cmd(root, team_name="测试团队", author="vayne")
-    capture_cmd("采用纯Git路线", "decision", author="vayne", root=root)
+    init_cmd(root, team_name="测试团队", author="alice")
+    capture_cmd("采用纯Git路线", "decision", author="alice", root=root)
     store = MemoryStore.open(root)
     config = load_config(env_path=root / ".env")
     return store, config

@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "team-memory"
 version = "0.2.3"
-description = "团队 Agent Memory 共享系统 — 把 Cursor/Claude Code/Codex/Hermes 的记忆统一汇聚到 Gitea"
+description = "团队 Agent Memory 共享系统 — 把 Cursor/Claude Code/Codex/Hermes 的记忆统一汇聚到 Git 管理的 Markdown 仓库"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "vayne" }]
-keywords = ["agent", "memory", "team", "gitea", "claude-code", "cursor", "codex", "hermes"]
+authors = [{ name = "Team Memory Maintainers" }]
+keywords = ["agent", "memory", "team", "git", "markdown", "claude-code", "cursor", "codex", "hermes"]
 dependencies = [
     "typer>=0.12",
     "rich>=13",

@@ -4,7 +4,7 @@
   init     初始化一个团队记忆仓库
   capture  沉淀一条记忆
   load     把团队记忆加载到目标项目(Claude Code 桥接)
-  sync     与 Gitea 远程同步(pull + push)
+  sync     与 Git 远程同步(pull + push)
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from .store import NotAMemoryRepoError
 
 app = typer.Typer(
     name="team-memory",
-    help="团队 Agent Memory 共享系统 — 加载 / 沉淀 / 同步团队记忆到 Gitea",
+    help="团队 Agent Memory 共享系统 — 加载 / 沉淀 / 同步团队记忆到 Git 远端",
     no_args_is_help=True,
     rich_markup_mode="rich",
     add_completion=False,
@@ -60,7 +60,7 @@ def init(
     author: str = typer.Option(None, "-a", "--author", help="默认作者"),
     force: bool = typer.Option(False, "--force", help="覆盖已存在的文件"),
 ) -> None:
-    """初始化一个团队记忆仓库(目录骨架 + git + Gitea 占位 remote)。"""
+    """初始化一个团队记忆仓库(目录骨架 + git + remote 占位配置)。"""
     config = load_config()
     init_cmd(
         Path(path or config.default_memory_path),
@@ -126,7 +126,7 @@ def save(
     note: str = typer.Option(None, "--note", help="简短正文"),
     from_file: str = typer.Option(None, "--from-file", help="从文件读取完整 body"),
     root: str = typer.Option(None, "-p", "--root", help="记忆仓库根(强烈建议显式指定)"),
-    sync_after: bool = typer.Option(False, "--sync", help="commit 后立即 sync 到 Gitea"),
+    sync_after: bool = typer.Option(False, "--sync", help="commit 后立即 sync 到 Git 远端"),
 ) -> None:
     """在记忆数据仓库内 capture + git commit(可选 --sync)。"""
     config = load_config()
@@ -191,7 +191,7 @@ def sync(
     pull: bool = typer.Option(True, "--pull/--no-pull", help="是否 pull"),
     force: bool = typer.Option(False, "--force", help="跳过工作区未提交预检"),
 ) -> None:
-    """与 Gitea 远程同步(pull + push, 不自动 commit)。"""
+    """与 Git 远程同步(pull + push, 不自动 commit)。"""
     try:
         ok = sync_cmd(
             Path(root) if root else None,

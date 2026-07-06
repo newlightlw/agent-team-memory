@@ -54,8 +54,8 @@ _PROJECT_CLAUDE_TEMPLATE = """\
 
 1. 不要绕过团队记忆中的架构约束
 2. 发现代码与记忆冲突时, 先指出冲突, 不直接修改
-3. 产生新决策 -> 用 `team-memory capture -t decision` 沉淀
-4. 解决非平凡错误 -> 用 `team-memory capture -t error` 沉淀
+3. 产生新决策 -> 用 `team-memory capture "标题" -t decision -p {root}` 沉淀
+4. 解决非平凡错误 -> 用 `team-memory capture "标题" -t error -p {root}` 沉淀
 5. 新写入的记忆在下一个会话才生效(避免污染当前对话)
 
 ## 当前可用记忆(共 {count} 条)

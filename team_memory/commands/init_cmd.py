@@ -1,7 +1,7 @@
 """team-memory init — 在指定路径生成记忆仓库骨架。
 
 生成: 标记文件 .team-memory.yml + 仓库骨架(README/CLAUDE.md/rules/.gitignore/.env)
-+ 五类记忆的 body 模板 + 示例种子记忆 + git 初始化 + Gitea remote(若已配真实地址)。
++ 五类记忆的 body 模板 + 示例种子记忆 + git 初始化 + remote(若已配真实地址)。
 """
 
 from __future__ import annotations
@@ -98,7 +98,7 @@ def init_cmd(
             "  git config --global user.email '你的邮箱'"
         )
 
-    # 8. Gitea remote(若已填真实地址)
+    # 8. Git remote(若已填真实地址)
     config = load_config(env_path=env_file)
     if config.has_gitea_remote and not config.is_remote_placeholder:
         add_remote(root, config.resolved_remote_url(), "origin")
@@ -107,7 +107,7 @@ def init_cmd(
         )
     else:
         console.print(
-            f"[dim]Gitea remote 未配置(占位符)。编辑 {root}/.env 填入 "
+            f"[dim]Git remote 未配置(占位符)。编辑 {root}/.env 填入 "
             "GITEA_REMOTE_URL 后运行 `team-memory sync`[/]"
         )
 

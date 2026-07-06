@@ -94,10 +94,10 @@ description: |
 ## 沉淀新记忆
 
 ```bash
-team-memory capture -t decision "标题"   # 决策(ADR)
-team-memory capture -t error "标题"      # 错误解决方案
-team-memory capture -t skill "标题"      # 可复用流程
-team-memory capture -t project "标题"    # 项目记忆
+team-memory capture "标题" -t decision -p "{root}"   # 决策(ADR)
+team-memory capture "标题" -t error -p "{root}"      # 错误解决方案
+team-memory capture "标题" -t skill -p "{root}"      # 可复用流程
+team-memory capture "标题" -t project -p "{root}"    # 项目记忆
 ```
 
 ## 规则
@@ -132,7 +132,7 @@ _AGENTS_SECTION = """\
 团队共享记忆系统(Git 管理)。仓库: `{root}`
 
 - 读取: memory/project/(项目) memory/decisions/(决策) memory/errors/(错误) memory/skills/(流程)
-- 沉淀: `team-memory capture -t <decision|error|skill|project> "标题"`
+- 沉淀: `team-memory capture "标题" -t <decision|error|skill|project> -p "{root}"`
 - 规则: 新写入下个会话生效; 不自动覆盖核心记忆; 废弃不删除; secrets 不入库
 - 当前可用记忆: {count} 条
 """

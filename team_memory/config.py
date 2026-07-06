@@ -1,4 +1,4 @@
-"""配置加载 — 从 .env 读取 Gitea / 团队 / 作者等配置。
+"""配置加载 — 从 .env 读取 Git remote / 团队 / 作者等配置。
 
 优先级: 真实环境变量 > .env 文件 > dataclass 默认值。
 不依赖 python-dotenv, 自带一个极简 .env 解析器。
@@ -19,7 +19,7 @@ _ENV_KEYS = (
     "TEAM_NAME",
     "DEFAULT_AUTHOR",
     "DEFAULT_MEMORY_PATH",
-    "TENCENT_OPENCLAW_PATH",
+    "EXTERNAL_MEMORY_PATH",
     "TEAM_MEMORY_ROOT",
     "WEB_HOST",
     "WEB_PORT",
@@ -61,24 +61,24 @@ class Config:
     team_name: str = "我们的团队"
     default_author: str = ""
     default_memory_path: str = "./memory"
-    tencent_openclaw_path: str = ""
+    external_memory_path: str = ""
     web_host: str = "127.0.0.1"
     web_port: int = 8765
     web_public_url: str = ""
 
     @property
     def has_gitea_remote(self) -> bool:
-        """是否配置了非空的 Gitea remote。"""
+        """是否配置了非空的 Git remote。"""
         return bool(self.gitea_remote_url.strip())
 
     @property
-    def has_openclaw_source(self) -> bool:
-        """是否配置了 tencent-openclaw 聚合源。"""
-        return bool(self.tencent_openclaw_path.strip())
+    def has_external_source(self) -> bool:
+        """是否配置了外部 Markdown 记忆源。"""
+        return bool(self.external_memory_path.strip())
 
     @property
     def is_remote_placeholder(self) -> bool:
-        """Gitea remote 是否仍是占位符(未填真实地址)。"""
+        """Git remote 是否仍是占位符(未填真实地址)。"""
         return _PLACEHOLDER_HOST in self.gitea_remote_url
 
     def resolved_remote_url(self) -> str:
@@ -120,7 +120,7 @@ class Config:
             team_name=merged.get("TEAM_NAME", "我们的团队"),
             default_author=merged.get("DEFAULT_AUTHOR", ""),
             default_memory_path=merged.get("DEFAULT_MEMORY_PATH", "./memory"),
-            tencent_openclaw_path=merged.get("TENCENT_OPENCLAW_PATH", ""),
+            external_memory_path=merged.get("EXTERNAL_MEMORY_PATH", ""),
             web_host=merged.get("WEB_HOST", "127.0.0.1").strip() or "127.0.0.1",
             web_port=web_port,
             web_public_url=merged.get("WEB_PUBLIC_URL", "").strip(),

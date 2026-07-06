@@ -1,6 +1,6 @@
 name: 校验记忆文件
 # PR 改动 memory/ 时自动校验 frontmatter / id 唯一性 / 引用有效性, 阻止脏数据进 main。
-# 前提: 团队 Gitea 已启用 Actions runner。runner 未就绪时本文件先就位, 不影响仓库。
+# 前提: Git 服务已启用 Actions runner。runner 未就绪时本文件先就位, 不影响仓库。
 
 on:
   pull_request:
@@ -22,9 +22,9 @@ jobs:
 
       - name: 安装 team-memory 工具
         run: |
-          # 方式 A(推荐): 从团队 Gitea 的工具仓库装, 把下面地址换成你的
-          pip install "git+http://gitea.example.com/team/agent-team-memory.git"
-          # 方式 B: 若工具仓库不在 Gitea, 在此加 actions/checkout 检出后:
+          # 方式 A(推荐): 从团队工具仓库安装, 把下面地址换成你的
+          pip install "git+https://git.example.com/team/agent-team-memory.git"
+          # 方式 B: 若需要在 workflow 中检出工具仓库:
           #   pip install -e ./agent-team-memory
 
       - name: 校验记忆(严格模式: warning 也算失败)

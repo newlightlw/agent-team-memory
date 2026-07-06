@@ -1,4 +1,4 @@
-"""team-memory sync — 与 Gitea 远程同步(pull + push), 团队版冲突处理。
+"""team-memory sync — 与 Git 远程同步(pull + push), 团队版冲突处理。
 
 改进:
   - 入口预检工作区(未提交变更警告, --force 跳过)和未完成 rebase
@@ -48,7 +48,7 @@ def sync_cmd(
     force: bool = False,
     console: Console | None = None,
 ) -> bool:
-    """与 Gitea 同步; 返回是否成功。"""
+    """与 Git 远程同步; 返回是否成功。"""
     console = console or Console()
     store = MemoryStore.open(root)
     config = load_config(env_path=store.root / ".env")
@@ -59,7 +59,7 @@ def sync_cmd(
         return False
     if config.is_remote_placeholder:
         console.print("[yellow]✗ GITEA_REMOTE_URL 仍是占位符(example.com)[/]")
-        console.print(f"  请编辑 {store.root}/.env 填入真实 Gitea 地址")
+        console.print(f"  请编辑 {store.root}/.env 填入真实 Git remote 地址")
         return False
 
     # 预检 1: 未完成 rebase
@@ -128,10 +128,10 @@ def sync_cmd(
             console.print("[green]✓[/] push 完成")
 
     for source in discover_sources(config, store.root):
-        if source.kind == "openclaw":
+        if source.kind == "external":
             console.print(
-                f"[dim]另: tencent-openclaw 源 {source.path} "
-                "由现有 sync-remote-memory 独立管理, 本命令不改动。[/]"
+                f"[dim]另: 外部源 {source.path} "
+                "由外部系统独立管理, 本命令不改动。[/]"
             )
 
     if ok:

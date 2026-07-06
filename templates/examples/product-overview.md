@@ -1,8 +1,8 @@
 ---
-id: mem-20260623-vayne-001
+id: mem-20260623-alice-001
 type: project
 scope: team
-author: vayne
+author: alice
 role: fullstack
 created: 2026-06-23
 updated: 2026-06-23

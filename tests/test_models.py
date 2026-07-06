@@ -22,10 +22,10 @@ from team_memory.models import (
 
 def make_entry(**kwargs):
     base = dict(
-        id="mem-20260623-vayne-001",
+        id="mem-20260623-alice-001",
         type=MemoryType.DECISION,
         title="测试",
-        author="vayne",
+        author="alice",
         created="2026-06-23",
         body="# 测试\n\n## Context\nhi",
     )
@@ -75,12 +75,12 @@ def test_validate_superseded_requires_target():
 
 
 def test_id_helpers():
-    assert format_memory_id("20260623", "vayne", 1) == "mem-20260623-vayne-001"
-    assert format_memory_id("20260623", "vayne", 42) == "mem-20260623-vayne-042"
-    assert memory_id_date("mem-20260623-vayne-042") == "20260623"
-    assert memory_id_author("mem-20260623-vayne-042") == "vayne"
+    assert format_memory_id("20260623", "alice", 1) == "mem-20260623-alice-001"
+    assert format_memory_id("20260623", "alice", 42) == "mem-20260623-alice-042"
+    assert memory_id_date("mem-20260623-alice-042") == "20260623"
+    assert memory_id_author("mem-20260623-alice-042") == "alice"
     assert memory_id_date("bad") is None
-    assert author_slug("Vayne Zhang") == "vaynezhang"
+    assert author_slug("Alice Zhang") == "alicezhang"
     assert author_slug("张三") == ""
 
 

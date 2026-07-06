@@ -68,7 +68,7 @@ def _memory_repo_error_message(resolved: Path) -> str:
             f"{text}\n"
             "你指向的是工具源码目录 team_memory/, 不是记忆数据仓库。\n"
             f"正确用法: python -m team_memory save ... -p {home}\n"
-            f"或: python -m team_memory save ... -p /data3/liuy/team-memory\n"
+            f"或: python -m team_memory save ... -p ~/team-memory\n"
             "记忆仓库内应有 .team-memory.yml; 请先运行 scripts/onboard.py"
         )
     if resolved.name == "team_memory" and (resolved.parent / "pyproject.toml").exists():

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Web 服务器定时同步 — 从 Gitea 拉取 team-memory 最新记忆，供 :8765 Web 展示。
+# Web 服务器定时同步 — 从 Git 远端拉取 team-memory 最新记忆，供 Web UI 展示。
 # 用法:
 #   bash scripts/sync-web-server.sh
-#   crontab: */5 * * * * /data3/liw/agent-team-memory/scripts/sync-web-server.sh
+#   crontab: */5 * * * * /path/to/agent-team-memory/scripts/sync-web-server.sh
 set -euo pipefail
 
-MEM_ROOT="${TEAM_MEMORY_ROOT:-/data3/liw/team-memory}"
+MEM_ROOT="${TEAM_MEMORY_ROOT:-$HOME/team-memory}"
 LOG="${TEAM_MEMORY_SYNC_LOG:-/tmp/team-memory-web-sync.log}"
 
 if [[ ! -d "$MEM_ROOT/.git" ]]; then

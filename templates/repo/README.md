@@ -21,9 +21,9 @@
 ## 怎么用（team-memory CLI）
 
 ```bash
-team-memory capture -t decision "标题"     # 沉淀一条记忆
-team-memory load -t <项目路径> --tools claude  # 加载到项目
-team-memory sync                            # 同步到 Gitea
+team-memory capture "标题" -t decision -p .    # 沉淀一条记忆
+team-memory load --global -p .                 # 加载到本机 AI 工具
+team-memory sync -p .                          # 同步到 Git 远端
 ```
 
 ## 修改规则
