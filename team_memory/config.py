@@ -20,6 +20,10 @@ _ENV_KEYS = (
     "DEFAULT_AUTHOR",
     "DEFAULT_MEMORY_PATH",
     "TENCENT_OPENCLAW_PATH",
+    "TEAM_MEMORY_ROOT",
+    "WEB_HOST",
+    "WEB_PORT",
+    "WEB_PUBLIC_URL",
 )
 
 # .env.example 占位符里的主机名, 用于判断 remote 是否仍是占位符
@@ -58,6 +62,9 @@ class Config:
     default_author: str = ""
     default_memory_path: str = "./memory"
     tencent_openclaw_path: str = ""
+    web_host: str = "127.0.0.1"
+    web_port: int = 8765
+    web_public_url: str = ""
 
     @property
     def has_gitea_remote(self) -> bool:
@@ -102,6 +109,11 @@ class Config:
             env_value = os.environ.get(key)
             if env_value:
                 merged[key] = env_value
+        web_port_raw = merged.get("WEB_PORT", "8765").strip()
+        try:
+            web_port = int(web_port_raw)
+        except ValueError:
+            web_port = 8765
         return cls(
             gitea_remote_url=merged.get("GITEA_REMOTE_URL", ""),
             gitea_token=merged.get("GITEA_TOKEN", ""),
@@ -109,6 +121,9 @@ class Config:
             default_author=merged.get("DEFAULT_AUTHOR", ""),
             default_memory_path=merged.get("DEFAULT_MEMORY_PATH", "./memory"),
             tencent_openclaw_path=merged.get("TENCENT_OPENCLAW_PATH", ""),
+            web_host=merged.get("WEB_HOST", "127.0.0.1").strip() or "127.0.0.1",
+            web_port=web_port,
+            web_public_url=merged.get("WEB_PUBLIC_URL", "").strip(),
         )
 
 

@@ -1,0 +1,17 @@
+[Unit]
+Description=Team Memory Web UI (shared read-only browser)
+After=network.target
+
+[Service]
+Type=simple
+User=liw
+Group=liw
+WorkingDirectory=/data3/liw/agent-team-memory
+Environment=TEAM_MEMORY_ROOT=/data3/liw/team-memory
+Environment=TEAM_MEMORY_PYTHON=/data/miniconda3/bin/python
+ExecStart=/data/miniconda3/bin/python -m team_memory web -p /data3/liw/team-memory --no-browser
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

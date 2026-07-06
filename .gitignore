@@ -26,11 +26,17 @@ mem0_history.db
 *.sqlite3
 *.sqlite3-*
 
+# ===== 误放的记忆文件(必须在 team-memory 数据仓库, 禁止出现在工具仓库) =====
+team_memory/memory/
+
 # ===== 本地生成的记忆仓库 demo =====
 /demo-memory/
 
 # ===== 编辑器 / 系统 =====
 .vscode/
 .idea/
+.cursor/
+.cursorindexingignore
+.specstory/
 .DS_Store
 .gstack/

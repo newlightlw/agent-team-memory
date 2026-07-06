@@ -1,23 +1,40 @@
 ---
 name: auto-commit-memory
 description: |
-  自动总结当前对话并提交为团队记忆(team-memory)。当用户说"提交下"、"提交一下"、
-  "git 上面的内容"、"把上面的提交"、"总结提交"、"把这个存下来"、"记一下上面的"、
-  "沉淀一下"等类似表达时, 触发本 skill。
+  自动总结当前对话并提交为团队记忆(team-memory)。  当用户说"提交下"、"提交一下"、"存一下"、"把这个存下来"、"记一下"、"沉淀一下"等类似表达时, 触发本 skill。
   流程: 分析对话 → 提取背景/结论/要点/案例/使用场景 → 判断记忆类型 → 展示总结草稿 →
   问"是否提交" → 仅当用户回复确认词(是/可以/行/确认/ok/yes/y/提交/好/对)才执行
-  team-memory capture + git commit。绝不未经确认就提交。
+  team-memory save(一条命令完成 capture + git commit)。绝不未经确认就提交。
 ---
 
 # 自动总结并提交记忆
 
+## 记忆仓库（唯一合法位置）
+
+**数据仓库路径**: `{root}`
+
+**Gitea 目标**: `{memory_remote}`（`team-memory` 数据仓库, **不是** `agent-team-memory` 工具仓库）
+
+**默认作者**: `{author}`
+
+## 禁止事项（违反会导致 Web/队友看不到）
+
+1. **禁止**在 `agent-team-memory` 工具仓库里创建/修改任何 `.md` 记忆文件
+2. **禁止**写入工具源码目录 `team_memory/memory/`（那是 Python 包, 不是记忆仓库）
+3. **禁止**手动 `write`/`edit` 新建记忆文件 — 必须用下方 `save` 命令
+4. **禁止**在工具仓库目录里 `git add` / `git commit` 来存团队记忆
+5. **禁止**省略 `-p "{root}"` — 即使用户当前打开的是工具仓库项目
+
 ## 何时触发
 
 用户说出以下任一(或语义相近)时触发:
-- "提交下" / "提交一下"
+- "提交下" / "提交一下" / "存一下"
 - "git 上面的内容" / "把上面的提交"
 - "总结提交" / "总结一下提交"
 - "把这个存下来" / "记一下" / "沉淀一下"
+
+> **Claude Code 用户**: 本能力由 `~/.claude/skills/auto-commit-memory/SKILL.md` 提供。
+> **不要**在 `.claude/settings.json` 配 hooks — hooks 无法总结对话, 且易误用 `capture` 写错仓库。
 
 ## 执行流程
 
@@ -40,7 +57,7 @@ description: |
 |------|------|
 | 技术选型 / 架构决定 | `decision` |
 | 解决了非平凡错误 | `error` |
-| 验证了可复用流程 | `skill` |
+| 验证了可复用流程 / 概念笔记 | `skill` |
 | 项目 / 架构信息 | `project` |
 | 代码结构 / 坑点 | `code` |
 
@@ -51,7 +68,7 @@ description: |
 ```
 标题: <一句话标题>
 类型: <decision/error/skill/project/code>
-来源: <你当前正在用的工具: claude/codex/hermes/trae>
+来源: <你当前正在用的工具: claude/codex/hermes/trae/cursor>
 ---
 背景: ...
 结论: ...
@@ -68,17 +85,19 @@ description: |
 
 ### 6. 根据用户回复执行
 
-- **确认词**(是 / 可以 / 行 / 确认 / ok / yes / y / 提交 / 好 / 对 / 嗯) → 执行提交:
+- **确认词**(是 / 可以 / 行 / 确认 / ok / yes / y / 提交 / 好 / 对 / 嗯) → **只执行下面这一条命令**:
 
 ```bash
-# 1. 沉淀到 team-memory(--via 用当前工具名)
-team-memory capture "<标题>" -t <类型> --via <当前工具> --note "<总结正文>"
-
-# 2. git 提交(在记忆仓库内)
-cd <记忆仓库> && git add -A && git commit -m "memory(<类型>): <标题> [via <工具>]"
+{python} -m team_memory save "<标题>" -t <类型> --via <当前工具> -a {author} -p "{root}" --note "<总结正文>"
 ```
 
-  完成后告知: 记忆 id、文件路径。若配了 Gitea remote, 提示一句 "如需同步团队, 运行 team-memory sync"(不自动 push)。
+  如需立即推送到 Gitea, 在用户明确要求同步时加 `--sync`:
+
+```bash
+{python} -m team_memory save "<标题>" -t <类型> --via <当前工具> -a {author} -p "{root}" --note "<总结正文>" --sync
+```
+
+  完成后告知: 记忆 id、文件路径、记忆仓库 `{root}`。提醒 Web 地址 `{web_url}` 刷新可见。
 
 - **否定词**(不 / 算了 / 取消 / 不要 / 再改改 / 等等) → 不提交, 回复 "已取消, 调整后可再说'提交下'"。
 
@@ -87,7 +106,8 @@ cd <记忆仓库> && git add -A && git commit -m "memory(<类型>): <标题> [vi
 ## 铁律
 
 1. **必须等用户明确确认才提交**, 绝不自动提交、绝不跳过确认步骤。
-2. 总结要**精炼**, 突出可复用价值——删掉寒暄、试错过程、临时输出, 只留共识。
-3. 案例必须保留**可复制格式**(代码块)。
-4. `team-memory capture` 报"找不到记忆仓库"时, 提示用户先 `team-memory init` 或用 `-p <仓库路径>` 指定。
-5. `--via` 填**当前正在用的工具名**(在 Claude Code 里就填 claude, 在 Codex 里填 codex, 以此类推), 保证来源可追溯。
+2. **只用 `save` 命令**, 不要拆成 capture + 手写文件 + 在错误仓库 git commit。
+3. 总结要**精炼**, 突出可复用价值——删掉寒暄、试错过程、临时输出, 只留共识。
+4. 案例必须保留**可复制格式**(代码块)。
+5. `--via` 填**当前正在用的工具名**, 保证来源可追溯。
+6. 若 `save` 报「工具仓库」或「找不到记忆仓库」, 提示用户先运行 `python scripts/onboard.py <team-memory.git> <短名>`。

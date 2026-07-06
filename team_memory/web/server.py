@@ -257,13 +257,14 @@ def serve(
     store: MemoryStore,
     *,
     host: str = "127.0.0.1",
-    port: int = 8000,
+    port: int = 8765,
     open_browser: bool = True,
+    public_url: str = "",
 ) -> None:
     """启动 Web 服务(阻塞)。"""
     handler = _make_handler(store)
     httpd = ThreadingHTTPServer((host, port), handler)
-    url = f"http://{host}:{port}"
+    url = public_url.strip() or f"http://{host}:{port}"
     print(f"team-memory web 已启动: {url}   (Ctrl+C 退出)")
     if open_browser:
         threading.Timer(0.5, lambda: webbrowser.open(url)).start()

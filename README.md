@@ -3,7 +3,7 @@
 > 让 **Claude Code / Codex / Trae / Hermes** 共享同一套团队记忆（Git 管理）。
 > 加载、沉淀、检索、可视化、AI 动态读写。Markdown 即真相，零向量依赖。
 
-版本 0.2.0 · [49 测试通过] · Mac / Linux / Windows
+版本 0.2.2 · Mac / Linux / Windows
 
 ---
 
@@ -58,6 +58,7 @@ python scripts/onboard.py <Gitea仓库地址> <英文短名>
 |---|---|
 | `init` | 初始化记忆仓库（骨架 + git + Gitea remote） |
 | `capture` | 沉淀**正式**记忆（已确认的经验） |
+| `save` | **capture + git commit**（「提交一下」推荐；防写错仓库） |
 | `propose` | 提交**候选**记忆到 inbox（AI/未验证，待审） |
 | `review` / `approve` / `decline` | 审核 inbox 候选 → 转正式 / 拒绝 |
 | `load --global` | 桥接到 4 工具（claude/codex/hermes/trae）+ 装 auto-commit skill |

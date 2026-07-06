@@ -190,13 +190,29 @@ def report_skip(tool: str, home: Path, console: Console) -> None:
     )
 
 
-def install_aux_skills(tools, console: Console) -> list[Path]:
-    """把 auto-commit-memory skill 装到各工具(随 load --global 分发)。"""
+def install_aux_skills(
+    tools,
+    store: MemoryStore,
+    config: Config,
+    console: Console,
+) -> list[Path]:
+    """把 auto-commit-memory skill 装到各工具(随 load --global 分发, 嵌入记忆仓库路径)。"""
     aux = TEMPLATES_DIR / "skills" / "auto-commit-memory" / "SKILL.md"
     if not aux.exists():
         console.print("[dim]未找到 auto-commit-memory 模板, 跳过辅助 skill[/]")
         return []
-    content = aux.read_text(encoding="utf-8")
+    import sys
+
+    memory_remote = config.gitea_remote_url or f"(请配置 {store.root}/.env 的 GITEA_REMOTE_URL)"
+    web_url = config.web_public_url or "(见 .env 的 WEB_PUBLIC_URL)"
+    content = render(
+        aux.read_text(encoding="utf-8"),
+        root=str(store.root),
+        author=config.default_author or "<你的英文短名>",
+        python=sys.executable,
+        memory_remote=memory_remote,
+        web_url=web_url,
+    )
     written: list[Path] = []
     for tool in tools:
         home = default_home(tool)

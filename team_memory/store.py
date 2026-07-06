@@ -58,6 +58,31 @@ def _slugify(text: str) -> str:
     return slug
 
 
+def _memory_repo_error_message(resolved: Path) -> str:
+    """生成更易懂的「不是记忆仓库」报错。"""
+    text = f"{resolved} 不是记忆仓库根(缺少 {MARKER_FILE})。"
+    parts = resolved.parts
+    if "agent-team-memory" in parts and "team_memory" in parts:
+        home = Path.home() / "team-memory"
+        return (
+            f"{text}\n"
+            "你指向的是工具源码目录 team_memory/, 不是记忆数据仓库。\n"
+            f"正确用法: python -m team_memory save ... -p {home}\n"
+            f"或: python -m team_memory save ... -p /data3/liuy/team-memory\n"
+            "记忆仓库内应有 .team-memory.yml; 请先运行 scripts/onboard.py"
+        )
+    if resolved.name == "team_memory" and (resolved.parent / "pyproject.toml").exists():
+        return (
+            f"{text}\n"
+            "team_memory/ 是 Python 包目录, 不是记忆仓库。\n"
+            "请 clone team-memory 数据仓库, 并用 -p 指向其根目录(含 .team-memory.yml)。"
+        )
+    return (
+        f"{text}\n"
+        "请用 -p 指定记忆数据仓库(如 ~/team-memory), 或先运行 scripts/onboard.py"
+    )
+
+
 def _filename_for(entry: MemoryEntry, slug: str | None = None) -> str:
     """生成记忆文件名: mem-YYYYMMDD-NNN[-slug].md。"""
     resolved = (slug if slug is not None else _slugify(entry.title)).strip()
@@ -88,9 +113,7 @@ class MemoryStore:
                 )
             resolved = found
         if not (resolved / MARKER_FILE).exists():
-            raise NotAMemoryRepoError(
-                f"{resolved} 不是记忆仓库根(缺少 {MARKER_FILE})。"
-            )
+            raise NotAMemoryRepoError(_memory_repo_error_message(resolved))
         return cls(root=resolved)
 
     # ---- 路径辅助 ----

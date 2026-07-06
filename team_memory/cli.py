@@ -15,8 +15,9 @@ import typer
 from rich.console import Console
 
 from . import __version__
-from .commands import capture_cmd, doctor_cmd, inbox_cmd, init_cmd, index_cmd, list_cmd, load_cmd, show_cmd, sync_cmd, update_cmd, validate_cmd, web_cmd
+from .commands import bridges_doctor_cmd, capture_cmd, doctor_cmd, inbox_cmd, init_cmd, index_cmd, list_cmd, load_cmd, save_cmd, show_cmd, sync_cmd, update_cmd, validate_cmd, web_cmd
 from .config import load_config
+from .gitutil import GitError
 from .models import MemoryValidationError
 from .store import NotAMemoryRepoError
 
@@ -109,6 +110,47 @@ def capture(
         raise typer.Exit(1)
 
 
+@app.command(help="沉淀记忆并 git commit(「提交一下」推荐用此命令, 避免写错仓库)")
+def save(
+    title: str = typer.Argument(..., help="记忆标题"),
+    type: str = typer.Option(
+        ..., "-t", "--type",
+        help="记忆类型: project / code / decision / error / skill",
+    ),
+    scope: str = typer.Option("team", "--scope", help="范围: team / project / module"),
+    author: str = typer.Option(None, "-a", "--author"),
+    via: str = typer.Option("", "--via", help="沉淀来源工具: claude/codex/hermes/trae/cursor"),
+    role: str = typer.Option("", "--role", help="岗位: algorithm / data / product / fullstack"),
+    tags: str = typer.Option(None, "--tags", help="逗号分隔的标签"),
+    related: str = typer.Option(None, "--related", help="逗号分隔的关联记忆 id"),
+    note: str = typer.Option(None, "--note", help="简短正文"),
+    from_file: str = typer.Option(None, "--from-file", help="从文件读取完整 body"),
+    root: str = typer.Option(None, "-p", "--root", help="记忆仓库根(强烈建议显式指定)"),
+    sync_after: bool = typer.Option(False, "--sync", help="commit 后立即 sync 到 Gitea"),
+) -> None:
+    """在记忆数据仓库内 capture + git commit(可选 --sync)。"""
+    config = load_config()
+    try:
+        save_cmd(
+            title=title,
+            type=type,
+            scope=scope,
+            author=author or config.default_author,
+            source=via,
+            role=role,
+            tags=tuple(t.strip() for t in tags.split(",") if t.strip()) if tags else (),
+            related=tuple(r.strip() for r in related.split(",") if r.strip()) if related else (),
+            note=note or "",
+            from_file=from_file,
+            root=Path(root) if root else None,
+            do_sync=sync_after,
+            console=console,
+        )
+    except (NotAMemoryRepoError, ValueError, MemoryValidationError, GitError) as exc:
+        console.print(f"[red]✗ {exc}[/]")
+        raise typer.Exit(1)
+
+
 @app.command()
 def load(
     target: str = typer.Argument(
@@ -192,8 +234,8 @@ def show(
 @app.command(help="启动 Web 可视化管理(来源/时间/版本 + 检索框)")
 def web(
     root: str = typer.Option(None, "-p", "--root", help="记忆仓库根"),
-    port: int = typer.Option(8000, "--port", help="端口"),
-    host: str = typer.Option("127.0.0.1", "--host", help="监听地址"),
+    port: int | None = typer.Option(None, "--port", help="端口(默认读 .env 的 WEB_PORT)"),
+    host: str | None = typer.Option(None, "--host", help="监听地址(默认读 .env 的 WEB_HOST)"),
     no_browser: bool = typer.Option(False, "--no-browser", help="不自动打开浏览器"),
 ) -> None:
     """启动 Web UI(阻塞, Ctrl+C 退出)。"""
@@ -208,6 +250,8 @@ def web(
     except NotAMemoryRepoError as exc:
         console.print(f"[red]✗ {exc}[/]")
         raise typer.Exit(1)
+    except SystemExit as exc:
+        raise typer.Exit(exc.code if isinstance(exc.code, int) else 1)
 
 
 @app.command(help="更新一条记忆(--note 追加 / --from-file 替换 / --supersede 废弃)")
@@ -238,6 +282,26 @@ def doctor(
 ) -> None:
     try:
         code = doctor_cmd(Path(root) if root else None, console=console)
+        if code:
+            raise typer.Exit(code)
+    except NotAMemoryRepoError as exc:
+        console.print(f"[red]✗ {exc}[/]")
+        raise typer.Exit(1)
+
+
+@app.command(help="检查 Claude/Codex 等全局 skill 是否已安装(「提交一下」依赖此项)")
+def check_bridges(
+    root: str = typer.Option(None, "-p", "--root", help="记忆仓库根"),
+    tools: str = typer.Option(
+        "claude,codex,hermes,trae", "--tools", help="要检查的工具, 逗号分隔"
+    ),
+) -> None:
+    try:
+        code = bridges_doctor_cmd(
+            Path(root) if root else None,
+            tools=tuple(t.strip() for t in tools.split(",") if t.strip()),
+            console=console,
+        )
         if code:
             raise typer.Exit(code)
     except NotAMemoryRepoError as exc:

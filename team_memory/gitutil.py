@@ -16,7 +16,11 @@ __all__ = [
     "get_git_config",
     "ensure_git_identity",
     "has_remote",
+    "get_remote_url",
     "add_remote",
+    "working_tree_dirty",
+    "conflicted_files",
+    "is_rebase_in_progress",
 ]
 
 
@@ -71,6 +75,12 @@ def has_remote(path: Path, name: str = "origin") -> bool:
     if result.returncode != 0:
         return False
     return name in result.stdout.split()
+
+
+def get_remote_url(path: Path, name: str = "origin") -> str:
+    """读取 git remote url; 不存在则返回空串。"""
+    result = run_git(path, "remote", "get-url", name)
+    return result.stdout.strip() if result.returncode == 0 else ""
 
 
 def add_remote(path: Path, url: str, name: str = "origin") -> bool:

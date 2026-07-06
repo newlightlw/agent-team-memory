@@ -22,6 +22,7 @@ from ..models import (
     today_iso,
     validate_entry,
 )
+from ..repo_guard import assert_valid_memory_repo
 from ..store import MemoryStore
 from ..templating import TEMPLATES_DIR, render
 
@@ -46,6 +47,7 @@ def capture_cmd(
     """沉淀一条记忆; 返回写入的文件路径。"""
     console = console or Console()
     store = MemoryStore.open(root)
+    assert_valid_memory_repo(store.root)
 
     try:
         type_enum = MemoryType(type)

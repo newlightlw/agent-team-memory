@@ -93,7 +93,7 @@ def load_cmd(
             if path is not None:
                 written.append(path)
         if aux_skill:
-            install_aux_skills(tools, console)
+            install_aux_skills(tools, store, config, console)
         return written
 
     # 项目级

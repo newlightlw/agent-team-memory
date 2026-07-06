@@ -71,6 +71,7 @@ def main() -> None:
 
     print("=== 5. 自检 ===")
     run([py, "-m", "team_memory", "doctor", "-p", mem_dir])
+    run([py, "-m", "team_memory", "check-bridges", "-p", mem_dir])
 
     print(f"\n✓ 接入完成! 记忆仓库: {mem_dir}")
     print("常用(任意平台):")
