@@ -12,7 +12,7 @@ from pathlib import Path
 __all__ = ["TEMPLATES_DIR", "render", "copy_template_tree"]
 
 # 工具包自带的模板目录(team_memory/../templates)
-TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
+TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 
 _VAR_RE = re.compile(r"\{(\w+)\}")
 

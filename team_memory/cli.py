@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
 
 import typer
 from rich.console import Console
@@ -202,7 +203,7 @@ def sync(
         )
         if not ok:
             raise typer.Exit(1)
-    except NotAMemoryRepoError as exc:
+    except (NotAMemoryRepoError, ValueError, OSError, subprocess.SubprocessError) as exc:
         console.print(f"[red]✗ {exc}[/]")
         raise typer.Exit(1)
 
@@ -398,6 +399,87 @@ def decline(
         inbox_cmd.decline_cmd(memory_id, Path(root) if root else None, reason=reason, console=console)
     except (NotAMemoryRepoError, ValueError) as exc:
         console.print(f"[red]✗ {exc}[/]")
+        raise typer.Exit(1)
+
+
+
+@app.command("join")
+def join_shared(
+    repo: str = typer.Argument(..., help="Private GitHub team-memory repository URL"),
+    root: Path = typer.Option(..., "-p", "--root", help="New member cache directory"),
+    branch: str = typer.Option("main", "--branch"),
+):
+    """Clone or safely refresh a read-only team cache; never overwrite a writer checkout."""
+    from .sharing import join
+
+    try:
+        console.print(str(join(repo, root, branch=branch)))
+    except (ValueError, OSError, subprocess.SubprocessError) as exc:
+        console.print(f"[red]{exc}[/]")
+        raise typer.Exit(1)
+
+
+@app.command("refresh")
+def refresh_shared(root: Path = typer.Option(..., "-p", "--root")):
+    """Pull current Git knowledge with fast-forward only; no push, reset or auto-commit."""
+    try:
+        if not sync_cmd(root, push=False, console=console):
+            raise typer.Exit(1)
+    except (ValueError, OSError, subprocess.SubprocessError) as exc:
+        console.print(f"[red]{exc}[/]")
+        raise typer.Exit(1)
+
+
+@app.command("stage-from-team")
+def stage_from_team(
+    record_id: str,
+    reader: Path = typer.Option(
+        ..., "--reader", help="Private READER credentials; never publisher credentials"
+    ),
+    author: str = typer.Option(..., "--author"),
+    type_: str = typer.Option("project", "--type"),
+    outbox: Path = typer.Option(Path("~/.config/team-memory/outbox"), "--outbox"),
+):
+    """Copy ONE selected service record to a PRIVATE LOCAL draft, preserving provenance. No upload."""
+    from .sharing import stage_team_record
+
+    try:
+        if "publisher" in reader.name.lower():
+            raise ValueError("Use reader credentials, never publisher credentials")
+        console.print(
+            str(
+                stage_team_record(record_id, reader.expanduser(), outbox, author, type_)
+            )
+        )
+        console.print(
+            "uploaded=false; source is a snapshot and must be rechecked before publishing"
+        )
+    except (ValueError, OSError, subprocess.SubprocessError) as exc:
+        console.print(f"[red]Local draft not confirmed: {type(exc).__name__}[/]")
+        raise typer.Exit(1)
+
+
+@app.command("submit")
+def submit_local_draft(
+    candidate: Path,
+    root: Path = typer.Option(..., "-p", "--root"),
+    reader: Path | None = typer.Option(None, "--reader"),
+):
+    """HUMAN terminal review: local candidate -> writer inbox only, no automatic commit/push."""
+    from .sharing import submit_draft
+
+    try:
+        console.print(
+            str(
+                submit_draft(
+                    candidate.expanduser(),
+                    root.expanduser(),
+                    reader=reader.expanduser() if reader else None,
+                )
+            )
+        )
+    except (ValueError, OSError, subprocess.SubprocessError) as exc:
+        console.print(f"[red]{exc}[/]")
         raise typer.Exit(1)
 
 

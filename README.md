@@ -4,7 +4,19 @@
 
 Team Memory 用 **Git 管理的 Markdown 仓库** 保存项目背景、技术决策、错误复盘和可复用流程。它不是聊天记录库，也不强依赖向量数据库；Markdown 是唯一真相，Git 提供版本、审核和回滚。
 
-版本 0.2.3 · Python 3.11+ · macOS / Linux / Windows
+版本 0.3.0 · Python 3.11+ · macOS / Linux / Windows
+
+## v0.3：GitHub 团队共享与一键成员接入
+
+公开源码与私有团队记忆分开。新成员默认获取只读 Git 缓存与独立 MCP；个人材料先在本机准备，经本人审阅后才进入 Git 审核流程。
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/newlightlw/agent-team-memory/v0.3.0/scripts/install.sh | bash -s -- --repo YOUR_ORG/team-shared-memory --author alice --tools codex
+```
+
+前置条件：Python 3.11+、Git，以及本人对私有库的访问权限。HTTPS 首次可用 `gh auth login` 和 `gh auth setup-git`。安装不使用 sudo，不覆盖原 MCP，失败立即停止；可选 Claude Code、Hermes 配置。完整的成员、管理员、飞书来源选材与回滚步骤见 **[GitHub 共享指南](docs/GITHUB_SHARING.md)**。
+
+现有 Git 原生 CLI/Web/桥接保留。飞书团队服务继续保存自己的权威记录，进入 Git 的是经审阅的副本，不把 Git approve 当作双人共识。GitHub 历史也不能提供消息彻底撤回保证。
 
 ## 解决什么问题
 
@@ -23,7 +35,7 @@ Team Memory 把这些经验沉淀为一个独立的 Git 仓库，让人和 Agent
 - **五类记忆**：`project` / `code` / `decision` / `error` / `skill`。
 - **候选审核**：AI 产出先进 `inbox/`，人工 `approve` 后才进入正式 `memory/`。
 - **跨工具桥接**：支持 Claude Code、Codex、Hermes、Trae 的全局 skill / 规则入口。
-- **MCP Server**：AI 工具可在对话中动态 `search/get/list/propose/approve`。
+- **MCP Server**：AI 工具可在对话中动态 `search/get/list`，新只读 MCP 另支持本机私有草稿。
 - **Web UI**：本地浏览、搜索、查看来源和版本历史。
 - **安全保护**：防止把团队记忆误写进工具源码仓库；secrets 默认不入库。
 
@@ -205,15 +217,15 @@ get_memory(memory_id)
 list_memories(type="")
 propose_memory(title, type, source="", author="", confidence="medium", note="")
 list_inbox(status="pending_review")
-approve_memory(memory_id)
+ # 审核仅由真人终端完成，不暴露 MCP approve
 ```
 
 配置示例见 [MCP接入.md](docs/MCP接入.md)。
 
 ## 设计原则
 
-1. **Git 是唯一真相**：Web、MCP、skill 都是派生视图。
-2. **记忆是压缩后的共识**：不保存完整聊天记录。
+1. **Git 原生长期知识以 Git 为准**；飞书原记录仍以团队服务为准。
+2. **记忆保留作者与依据**：不保存完整聊天；审核入库不自动代表所有成员共识。
 3. **AI 可以建议，正式记忆要审核**：候选先进 `inbox/`。
 4. **新写入下个会话生效**：避免当前对话自我污染。
 5. **废弃不删除**：用 `status: superseded` 和 `superseded_by` 追踪替代关系。
@@ -237,7 +249,7 @@ python -m pip install -e ".[dev]"
 PYTHONPATH=. pytest
 ```
 
-当前测试：58 个用例，覆盖模型、存储、CLI、inbox、Web、MCP、桥接和安全保护。
+当前 71 项测试通过：原 v0.2.3 的 58 项基线，以及 GitHub 同步、只读 MCP、配置保护和来源草稿等新增验证。分发安装另检查 wheel 模板与独立环境。
 
 ## License
 

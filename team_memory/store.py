@@ -203,7 +203,7 @@ class MemoryStore:
             )
         prefix = f"mem-{day}-{slug}-"
         max_seq = 0
-        for entry in self.list_entries():
+        for entry in [*self.list_entries(), *self.list_inbox(status_filter=None)]:
             if entry.id.startswith(prefix):
                 try:
                     seq = int(entry.id[len(prefix):])
@@ -212,10 +212,16 @@ class MemoryStore:
                     continue
         return format_memory_id(day, slug, max_seq + 1)
 
+    def assert_writable(self) -> None:
+        from .gitutil import run_git
+        if run_git(self.root, "config", "--local", "--get", "team-memory.readOnly").stdout.strip() == "true":
+            raise ValueError("This is a read-only member cache; use a separate reviewed writer checkout")
+
     # ---- 写入 ----
 
     def save_entry(self, entry: MemoryEntry, slug: str | None = None) -> Path:
         """把记忆写入对应类型目录; 返回写入路径。"""
+        self.assert_writable()
         target_dir = self.dir_for(entry.type)
         target_dir.mkdir(parents=True, exist_ok=True)
         path = target_dir / _filename_for(entry, slug)
@@ -229,6 +235,7 @@ class MemoryStore:
 
     def propose_entry(self, entry: MemoryEntry, slug: str | None = None) -> Path:
         """写候选记忆到 inbox/(entry.status 应为 pending_review)。"""
+        self.assert_writable()
         target = self.inbox_dir()
         target.mkdir(parents=True, exist_ok=True)
         path = target / _filename_for(entry, slug)
@@ -271,6 +278,7 @@ class MemoryStore:
 
     def approve_entry(self, memory_id: str) -> Path:
         """candidate(inbox) → 正式记忆(memory/{type}/), status 改 active。返回新路径。"""
+        self.assert_writable()
         src = self.find_inbox_file(memory_id)
         if src is None:
             raise ValueError(f"inbox 中未找到 candidate: {memory_id}")
@@ -282,6 +290,7 @@ class MemoryStore:
 
     def decline_entry(self, memory_id: str) -> Path:
         """candidate 标记 declined(保留在 inbox 供追溯)。"""
+        self.assert_writable()
         src = self.find_inbox_file(memory_id)
         if src is None:
             raise ValueError(f"inbox 中未找到 candidate: {memory_id}")

@@ -106,7 +106,6 @@ def list_inbox(status: str = "pending_review") -> list[dict]:
     ]
 
 
-@mcp.tool()
 def approve_memory(memory_id: str) -> dict:
     """通过候选记忆 → 自动转为正式记忆(inbox 移到 memory/{type}/, status=active)。"""
     from .commands.inbox_cmd import approve_cmd

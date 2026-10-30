@@ -36,6 +36,7 @@ def run_git(cwd: Path, *args: str, check: bool = False) -> subprocess.CompletedP
         capture_output=True,
         text=True,
         check=check,
+        timeout=30,
     )
 
 
@@ -110,7 +111,12 @@ def conflicted_files(path: Path) -> list[str]:
 
 def is_rebase_in_progress(path: Path) -> bool:
     """是否处于未完成的 rebase 状态。"""
-    result = run_git(path, "status", "--porcelain")
-    if result.returncode != 0:
-        return False
-    return any("rebase" in line.lower() for line in result.stdout.splitlines())
+    for name in ("rebase-merge", "rebase-apply"):
+        result = run_git(path, "rev-parse", "--git-path", name)
+        if result.returncode == 0:
+            location = Path(result.stdout.strip())
+            if not location.is_absolute():
+                location = path / location
+            if location.exists():
+                return True
+    return False
