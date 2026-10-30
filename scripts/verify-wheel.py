@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import tomllib
 import venv
 
 
@@ -25,6 +26,9 @@ def run(args, **kwargs):
 if __name__ == "__main__":
     wheel = Path(sys.argv[1]).resolve()
     source = Path(__file__).resolve().parent.parent
+    version = tomllib.loads((source / "pyproject.toml").read_text())["project"][
+        "version"
+    ]
     with tempfile.TemporaryDirectory(prefix="team-memory-wheel-") as temp:
         root = Path(temp)
         venv.EnvBuilder(with_pip=True, symlinks=sys.platform != "win32").create(
@@ -46,7 +50,13 @@ if __name__ == "__main__":
             cwd=root,
         )
         run([python, "-m", "pip", "install", "--no-deps", wheel], cwd=root)
-        check = 'from team_memory.templating import TEMPLATES_DIR; import team_memory; assert team_memory.__version__=="0.3.0"; assert (TEMPLATES_DIR/"repo/.gitignore").is_file(); assert (TEMPLATES_DIR/"skills/auto-commit-memory/SKILL.md").is_file(); assert (TEMPLATES_DIR/"types/project.md").is_file()'
+        check = (
+            "from team_memory.templating import TEMPLATES_DIR; import team_memory; "
+            + f"assert team_memory.__version__=={version!r}; "
+            + 'assert (TEMPLATES_DIR/"repo/.gitignore").is_file(); '
+            + 'assert (TEMPLATES_DIR/"skills/auto-commit-memory/SKILL.md").is_file(); '
+            + 'assert (TEMPLATES_DIR/"types/project.md").is_file()'
+        )
         run([python, "-c", check], cwd=root)
         run(
             [

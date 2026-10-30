@@ -1,4 +1,4 @@
-# GitHub 团队记忆共享 v0.3.0
+# GitHub 团队记忆共享 v0.3.1
 
 ## 两个仓库、两种权威来源
 
@@ -34,19 +34,18 @@ gh auth login
 gh auth setup-git
 ```
 
-SSH 用户可以使用已配置的本人 SSH key，不需要提供或共享管理员 token。之后安装：
+SSH 用户可以使用已配置的本人 SSH key，不需要提供或共享管理员 token。之后安装（推荐使用 Git 通道，不依赖 raw.githubusercontent.com）：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/newlightlw/agent-team-memory/v0.3.0/scripts/install.sh | bash -s -- \
-  --repo YOUR_ORG/team-shared-memory --author alice --tools codex
+bash -c 'set -e; TEAM_MEMORY_BOOTSTRAP=$(mktemp -d); cleanup(){ rm -rf "$TEAM_MEMORY_BOOTSTRAP"; }; trap cleanup EXIT; git clone --quiet --depth 1 --branch v0.3.1 https://github.com/newlightlw/agent-team-memory.git "$TEAM_MEMORY_BOOTSTRAP/tool"; bash "$TEAM_MEMORY_BOOTSTRAP/tool/scripts/install.sh" "$@"' -- --repo YOUR_ORG/team-shared-memory --author alice --tools codex
 ```
 
 `--author` 使用本人的英文小写代号。`--tools` 可选 `codex`、`claude`、`hermes`，多个用逗号分隔；`none` 只安装 CLI 与只读缓存。工具需要本身已经安装，且后续重载 MCP 或打开新会话；生成配置不等于真实模型接入验收。
 
-不想直接执行下载流时，可以先下载检查，再执行：
+也可以手动 clone 固定版本，检查脚本后运行。若 raw.githubusercontent.com 可用，仍可用 curl 下载；设置超时避免网络异常时一直等待：
 
 ```sh
-curl -fsSLo /tmp/team-memory-install.sh https://raw.githubusercontent.com/newlightlw/agent-team-memory/v0.3.0/scripts/install.sh
+curl --connect-timeout 10 --max-time 60 -fsSLo /tmp/team-memory-install.sh https://raw.githubusercontent.com/newlightlw/agent-team-memory/v0.3.1/scripts/install.sh
 bash /tmp/team-memory-install.sh --repo YOUR_ORG/team-shared-memory --author alice --tools codex
 ```
 
@@ -58,7 +57,7 @@ bash /tmp/team-memory-install.sh --repo YOUR_ORG/team-shared-memory --author ali
 4. 添加独立的 `team_memory_github` MCP，保留原有 MCP/设置；原配置备份在 `~/.config/team-memory/backups/`，权限600。
 5. 提供 `~/.local/bin/team-memory-github` 命令，不覆盖原来的 `team-memory`。默认 MCP 只读共享库，唯一写操作是生成本人本机草稿，不上传。
 
-默认安装到 `~/.local/share/team-memory/releases/v0.3.0`，可用 `--install-root` 改路径。同版本重跑不会重复添加 MCP；配置与路径发生冲突时请先核对，不会静默切换别人的库。
+默认安装到 `~/.local/share/team-memory/releases/v0.3.1`，可用 `--install-root` 改路径。同版本重跑不会重复添加 MCP；配置与路径发生冲突时请先核对，不会静默切换别人的库。
 
 ## 在 Agent 中读取
 
@@ -87,7 +86,7 @@ MCP 提供四个工具：
 
 ```json
 {
-  "command": "/用户自定安装路径/releases/v0.3.0/venv/bin/python",
+  "command": "/用户自定安装路径/releases/v0.3.1/venv/bin/python",
   "args": ["-m", "team_memory.shared_mcp"],
   "env": {
     "TEAM_MEMORY_ROOT": "/用户自定路径/team-shared-memory",
@@ -152,3 +151,5 @@ GitHub 的历史、旧克隆和备份可能保留已删除正文。Git 副本无
 升级时使用新版本安装根目录，先核对 `team_memory_github` 指向，再切换。卸载时停止该 MCP、移除对应配置项，恢复安装时备份；只删除本人核对过的专属安装与缓存目录，不删除团队服务、其他 MCP 或原工具工作区。
 
 认证参考：[GitHub SSH 与 deploy key](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys)。成员使用自己的账号；服务器自动化如以后采用单仓库只读 deploy key，也不能共享管理员私钥。
+
+Git 通道的 bootstrap 放在 mktemp 新目录，只包含公开源码，结束时清理这一临时源码目录，保留实际安装与数据缓存。私有库访问仍使用本人的 Git 凭证。
