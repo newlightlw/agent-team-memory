@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -60,6 +61,14 @@ def install(args):
     tools = args.tools.split(",")
     if any(t not in ("codex", "claude", "hermes", "none") for t in tools):
         raise ValueError("Select --tools codex,claude,hermes or none")
+    repo_id = url.removeprefix("https://github.com/").removeprefix("git@github.com:").removesuffix(".git")
+    if args.enable_upload:
+        gh = shutil.which("gh")
+        if not gh:
+            raise ValueError("Install GitHub CLI gh and authenticate your own account before enabling uploads")
+        access = json.loads(run([gh, "api", "--hostname", "github.com", "repos/" + repo_id]))
+        if access.get("private") is not True or access.get("permissions", {}).get("push") is not True:
+            raise ValueError("Enabled archives require your own WRITE access to a PRIVATE data repository")
     home = Path.home()
     base = args.install_root.expanduser().absolute()
     data = args.path.expanduser().absolute()
@@ -184,7 +193,7 @@ def install(args):
         metadata.chmod(0o600)
     run([python, "-m", "team_memory", "join", url, "-p", data], timeout=90)
     script = 'from pathlib import Path;import json,sys;from team_memory.member_setup import configure_clients;print(json.dumps(configure_clients(Path(sys.argv[1]),Path(sys.executable),sys.argv[2].split(","),author=sys.argv[3],upload_repo=sys.argv[4] or None)))'
-    configured = json.loads(run([python, "-c", script, data, args.tools, args.author, args.repo.removeprefix("https://github.com/").removeprefix("git@github.com:").removesuffix(".git") if args.enable_upload else ""]))
+    configured = json.loads(run([python, "-c", script, data, args.tools, args.author, repo_id if args.enable_upload else ""]))
     bindir = home / ".local/bin"
     bindir.mkdir(parents=True, exist_ok=True)
     wrapper = bindir / (
