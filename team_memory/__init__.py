@@ -12,4 +12,4 @@
 Phase 1 走纯 Git 路线(Markdown + frontmatter), 不依赖向量数据库。
 """
 
-__version__ = "0.3.1"
+__version__ = "0.4.0"

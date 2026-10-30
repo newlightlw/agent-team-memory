@@ -17,7 +17,7 @@ import tempfile
 import venv
 
 TOOL_REPO = "https://github.com/newlightlw/agent-team-memory.git"
-RELEASE = "v0.3.1"
+RELEASE = "v0.4.0"
 
 
 def run(args, **kwargs):
@@ -98,7 +98,7 @@ def install(args):
             run(
                 [python, "-c", "import team_memory; print(team_memory.__version__)"]
             ).strip()
-            != "0.3.1"
+            != "0.4.0"
         ):
             raise ValueError("Installed environment damaged; select a new install root")
     else:
@@ -183,8 +183,8 @@ def install(args):
         )
         metadata.chmod(0o600)
     run([python, "-m", "team_memory", "join", url, "-p", data], timeout=90)
-    script = 'from pathlib import Path;import json,sys;from team_memory.member_setup import configure_clients;print(json.dumps(configure_clients(Path(sys.argv[1]),Path(sys.executable),sys.argv[2].split(","),author=sys.argv[3])))'
-    configured = json.loads(run([python, "-c", script, data, args.tools, args.author]))
+    script = 'from pathlib import Path;import json,sys;from team_memory.member_setup import configure_clients;print(json.dumps(configure_clients(Path(sys.argv[1]),Path(sys.executable),sys.argv[2].split(","),author=sys.argv[3],upload_repo=sys.argv[4] or None)))'
+    configured = json.loads(run([python, "-c", script, data, args.tools, args.author, args.repo.removeprefix("https://github.com/").removeprefix("git@github.com:").removesuffix(".git") if args.enable_upload else ""]))
     bindir = home / ".local/bin"
     bindir.mkdir(parents=True, exist_ok=True)
     wrapper = bindir / (
@@ -247,6 +247,7 @@ def main():
     parser.add_argument("--repo", required=True)
     parser.add_argument("--author", required=True)
     parser.add_argument("--tools", default="codex")
+    parser.add_argument("--enable-upload", action="store_true", help="Enable explicit archive requests to this private GitHub data repo")
     parser.add_argument(
         "--path",
         type=Path,

@@ -48,7 +48,7 @@ def test_streamed_script_ignores_cwd_installer_and_uses_pinned_git(tmp_path):
         + """
 from pathlib import Path
 import sys
-assert sys.argv[1:]==['clone','--depth','1','--branch','v0.3.1','--','https://github.com/newlightlw/agent-team-memory.git',sys.argv[-1]]
+assert sys.argv[1:]==['clone','--depth','1','--branch','v0.4.0','--','https://github.com/newlightlw/agent-team-memory.git',sys.argv[-1]]
 p=Path(sys.argv[-1])/'scripts';p.mkdir(parents=True)
 (p/'install.py').write_text('import sys;print("PINNED_GIT_SOURCE "+" ".join(sys.argv[1:]))')
 """
