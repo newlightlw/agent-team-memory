@@ -16,9 +16,19 @@ if [[ -z "$TEAM_MEMORY_PYTHON" ]] || ! "$TEAM_MEMORY_PYTHON" -c 'import sys; rai
   exit 1
 fi
 command -v git >/dev/null 2>&1 || { echo 'Git is required.' >&2; exit 1; }
-TEAM_MEMORY_INSTALLER=$(mktemp "${TMPDIR:-/tmp}/team-memory-install.XXXXXXXX")
-trap 'rm -f "$TEAM_MEMORY_INSTALLER"' EXIT
-curl --fail --silent --show-error --location --proto '=https' \
-  https://raw.githubusercontent.com/newlightlw/agent-team-memory/v0.3.0/scripts/install.py \
-  --output "$TEAM_MEMORY_INSTALLER"
-"$TEAM_MEMORY_PYTHON" "$TEAM_MEMORY_INSTALLER" "$@"
+# Use the adjacent installer only when explicitly running the repository script.
+# A streamed/downloaded shell script never runs an unrelated cwd/install.py.
+if [[ "${BASH_SOURCE[0]:-}" == */scripts/install.sh ]] && [[ -f "$(dirname "${BASH_SOURCE[0]}")/install.py" ]]; then
+  "$TEAM_MEMORY_PYTHON" "$(dirname "${BASH_SOURCE[0]}")/install.py" "$@"
+else
+  # Avoid a second raw.githubusercontent.com request: use bounded Git HTTPS.
+  "$TEAM_MEMORY_PYTHON" - "$@" <<'PY'
+import pathlib, subprocess, sys, tempfile
+with tempfile.TemporaryDirectory(prefix='team-memory-bootstrap-') as directory:
+    source=pathlib.Path(directory)/'tool'
+    result=subprocess.run(['git','clone','--depth','1','--branch','v0.3.1','--','https://github.com/newlightlw/agent-team-memory.git',str(source)],capture_output=True,text=True,timeout=60)
+    if result.returncode:
+        raise SystemExit('Git bootstrap failed. Check GitHub access; no success claimed.')
+    raise SystemExit(subprocess.call([sys.executable,str(source/'scripts/install.py'),*sys.argv[1:]]))
+PY
+fi

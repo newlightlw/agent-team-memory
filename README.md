@@ -4,14 +4,14 @@
 
 Team Memory 用 **Git 管理的 Markdown 仓库** 保存项目背景、技术决策、错误复盘和可复用流程。它不是聊天记录库，也不强依赖向量数据库；Markdown 是唯一真相，Git 提供版本、审核和回滚。
 
-版本 0.3.0 · Python 3.11+ · macOS / Linux / Windows
+版本 0.3.1 · Python 3.11+ · macOS / Linux / Windows
 
 ## v0.3：GitHub 团队共享与一键成员接入
 
 公开源码与私有团队记忆分开。新成员默认获取只读 Git 缓存与独立 MCP；个人材料先在本机准备，经本人审阅后才进入 Git 审核流程。
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/newlightlw/agent-team-memory/v0.3.0/scripts/install.sh | bash -s -- --repo YOUR_ORG/team-shared-memory --author alice --tools codex
+bash -c 'set -e; TEAM_MEMORY_BOOTSTRAP=$(mktemp -d); cleanup(){ rm -rf "$TEAM_MEMORY_BOOTSTRAP"; }; trap cleanup EXIT; git clone --quiet --depth 1 --branch v0.3.1 https://github.com/newlightlw/agent-team-memory.git "$TEAM_MEMORY_BOOTSTRAP/tool"; bash "$TEAM_MEMORY_BOOTSTRAP/tool/scripts/install.sh" "$@"' -- --repo YOUR_ORG/team-shared-memory --author alice --tools codex
 ```
 
 前置条件：Python 3.11+、Git，以及本人对私有库的访问权限。HTTPS 首次可用 `gh auth login` 和 `gh auth setup-git`。安装不使用 sudo，不覆盖原 MCP，失败立即停止；可选 Claude Code、Hermes 配置。完整的成员、管理员、飞书来源选材与回滚步骤见 **[GitHub 共享指南](docs/GITHUB_SHARING.md)**。
@@ -249,7 +249,7 @@ python -m pip install -e ".[dev]"
 PYTHONPATH=. pytest
 ```
 
-当前 72 项测试通过：原 v0.2.3 的 58 项基线，以及 GitHub 同步、只读 MCP、配置保护和来源草稿等新增验证。分发安装另检查 wheel 模板与独立环境。
+当前 74 项测试通过：原 v0.2.3 的 58 项基线，以及 GitHub 同步、只读 MCP、配置保护和来源草稿等新增验证。分发安装另检查 wheel 模板与独立环境。
 
 ## License
 
