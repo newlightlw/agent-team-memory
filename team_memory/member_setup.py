@@ -144,6 +144,20 @@ def configure_clients(
                             kept.append(line)
                     updated = "".join(kept).rstrip() + "\n" + addition
                     tomllib.loads(updated)
+                elif tool == "hermes":
+                    # Replace the owned mapping, not append a duplicate YAML key.
+                    # Also repairs duplicates produced by earlier managed upgrades.
+                    document = yaml.compose(original)
+                    mapping = next(value for key, value in document.value if key.value == "mcp_servers")
+                    spans = [(key.start_mark.line,
+                              value.end_mark.line + (1 if value.end_mark.column > key.start_mark.column else 0))
+                             for key, value in mapping.value if key.value == NAME]
+                    lines = original.splitlines(keepends=True)
+                    for span in reversed(spans):
+                        lines[span[0]:span[1]] = [addition] if span == spans[0] else []
+                    updated = "".join(lines)
+                    if yaml.safe_load(updated)["mcp_servers"][NAME] != entry:
+                        raise ValueError("Hermes upgrade did not preserve a valid mapping")
             else:
                 continue
         changes.append((path, original, updated, path.exists()))

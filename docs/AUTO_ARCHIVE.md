@@ -1,4 +1,4 @@
-# 自动归档与完整结构化记忆（v0.4.1）
+# 自动归档与完整结构化记忆（v0.4.2）
 
 两条入口共用私有 GitHub 数据库：飞书已有归档自动整理并上传；成员在 AI 工具里明确说“帮我归档下……”或“帮我同步下……”时，由当前 AI 先整理再直接上传。显式启用后无需逐条审核。旧的 inbox 人工审阅仍可选，两种流程各自独立。
 
@@ -22,7 +22,7 @@
 ```sh
 gh auth login
 gh auth setup-git
-bash -c 'set -e; TEAM_MEMORY_BOOTSTRAP=$(mktemp -d); cleanup(){ rm -rf "$TEAM_MEMORY_BOOTSTRAP"; }; trap cleanup EXIT; git clone --quiet --depth 1 --branch v0.4.1 https://github.com/newlightlw/agent-team-memory.git "$TEAM_MEMORY_BOOTSTRAP/tool"; bash "$TEAM_MEMORY_BOOTSTRAP/tool/scripts/install.sh" "$@"' -- --repo YOUR_ORG/team-shared-memory --author alice --tools codex --enable-upload
+bash -c 'set -e; TEAM_MEMORY_BOOTSTRAP=$(mktemp -d); cleanup(){ rm -rf "$TEAM_MEMORY_BOOTSTRAP"; }; trap cleanup EXIT; git clone --quiet --depth 1 --branch v0.4.2 https://github.com/newlightlw/agent-team-memory.git "$TEAM_MEMORY_BOOTSTRAP/tool"; bash "$TEAM_MEMORY_BOOTSTRAP/tool/scripts/install.sh" "$@"' -- --repo YOUR_ORG/team-shared-memory --author alice --tools codex --enable-upload
 ```
 
 把数据库、作者代号换成自己的；多个客户端用 `--tools codex,claude,hermes`。安装会添加标准 MCP 配置与 `team-memory-archive` 技能；托管的旧版 MCP 可在同一缓存/作者下升级，其他 MCP 与配置保留并私有备份。重载 MCP 或新开会话后说：
@@ -54,7 +54,7 @@ bash -c 'set -e; TEAM_MEMORY_BOOTSTRAP=$(mktemp -d); cleanup(){ rm -rf "$TEAM_ME
   "state": "/home/you/.config/team-memory/feishu-sync-state.json",
   "gh": "/absolute/path/to/gh",
   "summary_command": [
-    "/absolute/path/to/releases/v0.4.1/venv/bin/python",
+    "/absolute/path/to/releases/v0.4.2/venv/bin/python",
     "-m", "team_memory.archive_summarizer", "--codex", "/absolute/path/to/codex"
   ],
   "interval_seconds": 60

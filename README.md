@@ -4,7 +4,7 @@
 
 Team Memory 用 **Git 管理的 Markdown 仓库** 保存项目背景、技术决策、错误复盘和可复用流程。它支持结构化知识和可选的飞书原文归档，不强依赖向量数据库；Markdown 是唯一真相，Git 提供版本、审核和回滚。
 
-版本 0.4.1 · Python 3.11+ · macOS / Linux / Windows
+版本 0.4.2 · Python 3.11+ · macOS / Linux / Windows
 
 ## v0.4：一句话归档 + 飞书自动同步
 
