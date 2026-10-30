@@ -113,7 +113,7 @@ Windows 用户先安装 Python 3.11+，下载 `scripts/install.py` 后用 `py -3
 
 ## 本人分享与 Git 审核
 
-只读缓存与可写工作区分开。本人另开可写克隆：
+只读缓存与可写工作区分开。本人另开可写克隆；Git 提交还需要在自己的 Git 配置中设置姓名和提交邮箱（可仅配置该 writer 仓库，不使用他人身份）：
 
 ```sh
 git clone https://github.com/YOUR_ORG/team-shared-memory.git "$HOME/team-shared-memory-writer"

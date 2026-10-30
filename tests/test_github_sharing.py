@@ -396,3 +396,18 @@ def test_reader_origin_is_not_changed_by_legacy_global_environment(
     monkeypatch.setenv("GITEA_TOKEN", "synthetic-unused-legacy-value")
     assert sync_cmd(root, push=False, console=QUIET)
     assert get_remote_url(root) == str(remote)
+
+
+def test_first_refresh_runs_even_on_a_freshly_booted_machine(
+    pair, tmp_path, monkeypatch
+):
+    import team_memory.sharing as sharing
+
+    _, remote = pair
+    root = join(str(remote), tmp_path / "reader")
+    remote.rename(tmp_path / "unavailable.git")
+    monkeypatch.setattr(sharing.time, "monotonic", lambda: 1.0)
+    reader = SharedReader(root, auto_sync=True)
+    first = reader.snapshot()
+    assert first["stale"] is True and reader.last_attempt == 1.0
+    assert first["sync_error"]

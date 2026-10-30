@@ -133,12 +133,15 @@ class SharedReader:
         MemoryStore.open(self.root)
         self.auto_sync = auto_sync
         self.interval = interval
-        self.last_attempt = 0.0
+        self.last_attempt = None
         self.last_success = None
         self.sync_error = ""
 
     def snapshot(self):
-        if self.auto_sync and time.monotonic() - self.last_attempt >= self.interval:
+        if self.auto_sync and (
+            self.last_attempt is None
+            or time.monotonic() - self.last_attempt >= self.interval
+        ):
             self.last_attempt = time.monotonic()
             try:
                 from .commands.sync_cmd import sync_cmd

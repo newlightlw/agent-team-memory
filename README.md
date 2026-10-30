@@ -249,7 +249,7 @@ python -m pip install -e ".[dev]"
 PYTHONPATH=. pytest
 ```
 
-当前 71 项测试通过：原 v0.2.3 的 58 项基线，以及 GitHub 同步、只读 MCP、配置保护和来源草稿等新增验证。分发安装另检查 wheel 模板与独立环境。
+当前 72 项测试通过：原 v0.2.3 的 58 项基线，以及 GitHub 同步、只读 MCP、配置保护和来源草稿等新增验证。分发安装另检查 wheel 模板与独立环境。
 
 ## License
 
