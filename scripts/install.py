@@ -18,7 +18,7 @@ import tempfile
 import venv
 
 TOOL_REPO = "https://github.com/newlightlw/agent-team-memory.git"
-RELEASE = "v0.4.1"
+RELEASE = "v0.4.2"
 
 
 def run(args, **kwargs):
@@ -107,7 +107,7 @@ def install(args):
             run(
                 [python, "-c", "import team_memory; print(team_memory.__version__)"]
             ).strip()
-            != "0.4.1"
+            != "0.4.2"
         ):
             raise ValueError("Installed environment damaged; select a new install root")
     else:

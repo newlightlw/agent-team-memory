@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "team-memory"
-version = "0.4.1"
+version = "0.4.2"
 description = "团队 Agent Memory 共享系统 — 把 Cursor/Claude Code/Codex/Hermes 的记忆统一汇聚到 Git 管理的 Markdown 仓库"
 readme = "README.md"
 requires-python = ">=3.11"

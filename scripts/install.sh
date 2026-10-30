@@ -26,7 +26,7 @@ else
 import pathlib, subprocess, sys, tempfile
 with tempfile.TemporaryDirectory(prefix='team-memory-bootstrap-') as directory:
     source=pathlib.Path(directory)/'tool'
-    result=subprocess.run(['git','clone','--depth','1','--branch','v0.4.1','--','https://github.com/newlightlw/agent-team-memory.git',str(source)],capture_output=True,text=True,timeout=60)
+    result=subprocess.run(['git','clone','--depth','1','--branch','v0.4.2','--','https://github.com/newlightlw/agent-team-memory.git',str(source)],capture_output=True,text=True,timeout=60)
     if result.returncode:
         raise SystemExit('Git bootstrap failed. Check GitHub access; no success claimed.')
     raise SystemExit(subprocess.call([sys.executable,str(source/'scripts/install.py'),*sys.argv[1:]]))

@@ -128,23 +128,34 @@ def test_feishu_failed_summary_or_changed_source_does_not_advance(tmp_path):
     writer.publish.assert_not_called()
 
 
-def test_member_upload_upgrade_preserves_other_clients(tmp_path, monkeypatch):
+@pytest.mark.parametrize("tool", ["codex", "claude", "hermes"])
+def test_member_upload_upgrade_preserves_other_clients(tmp_path, monkeypatch, tool):
     monkeypatch.setattr("shutil.which", lambda _: "/synthetic/gh")
     home = tmp_path / "home"
     root = tmp_path / "cache"
-    path = home / ".codex/config.toml"
-    path.parent.mkdir(parents=True)
-    path.write_text('model = "test"\n[mcp_servers.unrelated]\ncommand = "keep"\n')
+    path = home / {"codex": ".codex/config.toml", "claude": ".claude.json", "hermes": ".hermes/config.yaml"}[tool]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text({"codex": 'model = "test"\n[mcp_servers.unrelated]\ncommand = "keep"\n',
+                     "claude": '{"model":"test","mcpServers":{"unrelated":{"command":"keep"}}}',
+                     "hermes": 'model: test\n# keep this comment\nmcp_servers:\n  unrelated:\n    command: keep\nother_setting: keep\n'}[tool])
     old = home / ".local/share/team-memory/releases/v0.3.1/venv/bin/python"
     new = home / ".local/share/team-memory/releases/v0.4.0/venv/bin/python"
-    configure_clients(root, old, ["codex"], home=home, author="alice")
-    configure_clients(root, new, ["codex"], home=home, author="alice", upload_repo="example/private")
+    configure_clients(root, old, [tool], home=home, author="alice")
+    configure_clients(root, new, [tool], home=home, author="alice", upload_repo="example/private")
     import tomllib
-    config = tomllib.loads(path.read_text())
-    assert config["model"] == "test" and config["mcp_servers"]["unrelated"]["command"] == "keep"
-    assert config["mcp_servers"]["team_memory_github"]["env"]["TEAM_MEMORY_UPLOAD_ENABLED"] == "1"
-    assert (home / ".codex/skills/team-memory-archive/SKILL.md").is_file()
-    assert not configure_clients(root, new, ["codex"], home=home, author="alice", upload_repo="example/private")["configured"]
+    import yaml
+    raw = path.read_text()
+    config = tomllib.loads(raw) if tool == "codex" else json.loads(raw) if tool == "claude" else yaml.safe_load(raw)
+    servers = config["mcpServers" if tool == "claude" else "mcp_servers"]
+    assert config["model"] == "test" and servers["unrelated"]["command"] == "keep"
+    assert servers["team_memory_github"]["env"]["TEAM_MEMORY_UPLOAD_ENABLED"] == "1"
+    assert servers["team_memory_github"]["command"] == str(new)
+    if tool == "hermes":
+        assert raw.count("  team_memory_github:") == 1
+        assert "# keep this comment" in raw and config["other_setting"] == "keep"
+    directory = {"codex": ".codex", "claude": ".claude", "hermes": ".hermes"}[tool]
+    assert (home / directory / "skills/team-memory-archive/SKILL.md").is_file()
+    assert not configure_clients(root, new, [tool], home=home, author="alice", upload_repo="example/private")["configured"]
 
 
 def test_literal_credentials_removed_before_github():
@@ -191,3 +202,21 @@ def test_summary_timeout_kills_cli_descendants_and_removes_auth_copy(tmp_path, m
     result = subprocess.run(['ps','-p',str(pid),'-o','stat='],capture_output=True,text=True)
     assert result.returncode != 0 or result.stdout.strip().startswith('Z')
     assert not list(tmp_path.glob('team-memory-summary-*/auth.json'))
+
+
+def test_hermes_upgrade_repairs_owned_legacy_duplicate_keys(tmp_path, monkeypatch):
+    import yaml
+    monkeypatch.setattr('shutil.which', lambda _: '/synthetic/gh')
+    home = tmp_path / 'home'
+    root = tmp_path / 'cache'
+    old = home / '.local/share/team-memory/releases/v0.3.1/venv/bin/python'
+    new = home / '.local/share/team-memory/releases/v0.4.2/venv/bin/python'
+    configure_clients(root, old, ['hermes'], home=home, author='alice')
+    path = home / '.hermes/config.yaml'
+    raw = path.read_text()
+    owned_line = next(line for line in raw.splitlines(keepends=True) if line.startswith('  team_memory_github:'))
+    path.write_text(raw.replace('mcp_servers:\n', 'mcp_servers:\n' + owned_line))
+    configure_clients(root, new, ['hermes'], home=home, author='alice', upload_repo='example/private')
+    raw = path.read_text()
+    assert raw.count('  team_memory_github:') == 1
+    assert yaml.safe_load(raw)['mcp_servers']['team_memory_github']['command'] == str(new)
