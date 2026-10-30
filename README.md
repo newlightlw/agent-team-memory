@@ -2,21 +2,15 @@
 
 让 Claude Code / Codex / Cursor / Trae / Hermes 等 AI coding 工具共享同一套团队长期记忆。
 
-Team Memory 用 **Git 管理的 Markdown 仓库** 保存项目背景、技术决策、错误复盘和可复用流程。它不是聊天记录库，也不强依赖向量数据库；Markdown 是唯一真相，Git 提供版本、审核和回滚。
+Team Memory 用 **Git 管理的 Markdown 仓库** 保存项目背景、技术决策、错误复盘和可复用流程。它支持结构化知识和可选的飞书原文归档，不强依赖向量数据库；Markdown 是唯一真相，Git 提供版本、审核和回滚。
 
-版本 0.3.1 · Python 3.11+ · macOS / Linux / Windows
+版本 0.4.0 · Python 3.11+ · macOS / Linux / Windows
 
-## v0.3：GitHub 团队共享与一键成员接入
+## v0.4：一句话归档 + 飞书自动同步
 
-公开源码与私有团队记忆分开。新成员默认获取只读 Git 缓存与独立 MCP；个人材料先在本机准备，经本人审阅后才进入 Git 审核流程。
+你说“帮我归档下……”或“帮我同步下……”时，当前 AI 先整理**目的、关键过程、结果、核心思想、未来应用、讨论点**六项，再直接上传私有 GitHub。可选飞书自动同步保留原文与结构化摘要，无需逐条审阅。作者、来源、版本仍保留；自动归档不等于团队共识。
 
-```sh
-bash -c 'set -e; TEAM_MEMORY_BOOTSTRAP=$(mktemp -d); cleanup(){ rm -rf "$TEAM_MEMORY_BOOTSTRAP"; }; trap cleanup EXIT; git clone --quiet --depth 1 --branch v0.3.1 https://github.com/newlightlw/agent-team-memory.git "$TEAM_MEMORY_BOOTSTRAP/tool"; bash "$TEAM_MEMORY_BOOTSTRAP/tool/scripts/install.sh" "$@"' -- --repo YOUR_ORG/team-shared-memory --author alice --tools codex
-```
-
-前置条件：Python 3.11+、Git，以及本人对私有库的访问权限。HTTPS 首次可用 `gh auth login` 和 `gh auth setup-git`。安装不使用 sudo，不覆盖原 MCP，失败立即停止；可选 Claude Code、Hermes 配置。完整的成员、管理员、飞书来源选材与回滚步骤见 **[GitHub 共享指南](docs/GITHUB_SHARING.md)**。
-
-现有 Git 原生 CLI/Web/桥接保留。飞书团队服务继续保存自己的权威记录，进入 Git 的是经审阅的副本，不把 Git approve 当作双人共识。GitHub 历史也不能提供消息彻底撤回保证。
+默认查询模式仍只读；成员通过 `--enable-upload` 明确启用直接上传与配套技能。完整安装、配置、失败恢复、飞书接入和实际限制见 **[自动归档指南](docs/AUTO_ARCHIVE.md)**。旧的人工 inbox 审阅路径仍可用，见 [GitHub 共享指南](docs/GITHUB_SHARING.md)。源码与实际团队记忆使用不同仓库。
 
 ## 解决什么问题
 
@@ -33,9 +27,9 @@ Team Memory 把这些经验沉淀为一个独立的 Git 仓库，让人和 Agent
 
 - **Git + Markdown**：记忆文件人类可读、AI 可读、可 review、可回滚。
 - **五类记忆**：`project` / `code` / `decision` / `error` / `skill`。
-- **候选审核**：AI 产出先进 `inbox/`，人工 `approve` 后才进入正式 `memory/`。
+- **可选候选审核**：人工流程中的 AI 产出先进 `inbox/`，人工 `approve` 后才进入正式 `memory/`。
 - **跨工具桥接**：支持 Claude Code、Codex、Hermes、Trae 的全局 skill / 规则入口。
-- **MCP Server**：AI 工具可在对话中动态 `search/get/list`，新只读 MCP 另支持本机私有草稿。
+- **MCP Server**：AI 工具可在对话中动态 `search/get/list`，独立 MCP 支持本机草稿，以及显式启用的结构化直接上传。
 - **Web UI**：本地浏览、搜索、查看来源和版本历史。
 - **安全保护**：防止把团队记忆误写进工具源码仓库；secrets 默认不入库。
 

@@ -33,6 +33,7 @@ def configure_clients(
     *,
     home: Path | None = None,
     author="member",
+    upload_repo: str | None = None,
 ):
     home = home or Path.home()
     if any(t not in ("codex", "claude", "hermes", "none") for t in tools):
@@ -47,6 +48,14 @@ def configure_clients(
         "TEAM_MEMORY_OUTBOX": str(home / ".config/team-memory/outbox"),
         "TEAM_MEMORY_AUTO_SYNC": "1",
     }
+    if upload_repo:
+        from .archive import GitHubArchive
+        GitHubArchive(upload_repo)  # validate before any client mutation
+        import shutil
+        gh = shutil.which("gh")
+        if not gh:
+            raise ValueError("GitHub CLI gh required for enabled uploads; authenticate it first")
+        env.update(TEAM_MEMORY_UPLOAD_ENABLED="1", TEAM_MEMORY_GITHUB_REPO=upload_repo, TEAM_MEMORY_GH=gh)
     entry = {
         "command": str(python),
         "args": ["-m", "team_memory.shared_mcp"],
@@ -114,11 +123,45 @@ def configure_clients(
                 or existing.get("args") != entry["args"]
                 or existing.get("env") != env
             ):
-                raise ValueError(
-                    "Existing " + NAME + " points elsewhere; no client files modified"
-                )
-            continue
+                previous_env = existing.get("env", {})
+                managed = (existing.get("args") == entry["args"]
+                           and previous_env.get("TEAM_MEMORY_ROOT") == env["TEAM_MEMORY_ROOT"]
+                           and previous_env.get("TEAM_MEMORY_AUTHOR") == author
+                           and previous_env.get("TEAM_MEMORY_OUTBOX") == env["TEAM_MEMORY_OUTBOX"]
+                           and previous_env.get("TEAM_MEMORY_AUTO_SYNC") == "1"
+                           and "/team-memory/releases/" in existing.get("command", "")
+                           and "/team-memory/releases/" in entry["command"])
+                if not managed:
+                    raise ValueError("Existing " + NAME + " points elsewhere; no client files modified")
+                if tool == "codex":
+                    # Replace only this named server's TOML sections; preserve unrelated text.
+                    lines, kept, dropping = original.splitlines(keepends=True), [], False
+                    for line in lines:
+                        if line.lstrip().startswith("["):
+                            section = line.strip().split("#", 1)[0].strip()
+                            dropping = (section == "[mcp_servers." + NAME + "]" or section.startswith("[mcp_servers." + NAME + "."))
+                        if not dropping:
+                            kept.append(line)
+                    updated = "".join(kept).rstrip() + "\n" + addition
+                    tomllib.loads(updated)
+            else:
+                continue
         changes.append((path, original, updated, path.exists()))
+    if upload_repo:
+        from .templating import TEMPLATES_DIR
+        skill = (TEMPLATES_DIR / "skills/team-memory-archive/SKILL.md").read_text()
+        for tool in dict.fromkeys(tools):
+            if tool == "none":
+                continue
+            directory = {"codex": ".codex", "claude": ".claude", "hermes": ".hermes"}[tool]
+            path = home / directory / "skills/team-memory-archive/SKILL.md"
+            if path.is_symlink():
+                raise ValueError("Archive skill symlink requires manual installation")
+            original = path.read_text() if path.exists() else ""
+            if original and original != skill:
+                raise ValueError("Archive skill already customized; preserve it and update manually")
+            if original != skill:
+                changes.append((path, original, skill, path.exists()))
     # Preflight ALL clients before any write. Backups contain existing secrets and
     # are private; return paths only. Do not write or replace unrelated MCP entries.
     backups = home / ".config/team-memory/backups" / uuid4().hex
