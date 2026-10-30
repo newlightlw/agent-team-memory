@@ -1,4 +1,4 @@
-# 自动归档与完整结构化记忆（v0.4.0）
+# 自动归档与完整结构化记忆（v0.4.1）
 
 两条入口共用私有 GitHub 数据库：飞书已有归档自动整理并上传；成员在 AI 工具里明确说“帮我归档下……”或“帮我同步下……”时，由当前 AI 先整理再直接上传。显式启用后无需逐条审核。旧的 inbox 人工审阅仍可选，两种流程各自独立。
 
@@ -22,7 +22,7 @@
 ```sh
 gh auth login
 gh auth setup-git
-bash -c 'set -e; TEAM_MEMORY_BOOTSTRAP=$(mktemp -d); cleanup(){ rm -rf "$TEAM_MEMORY_BOOTSTRAP"; }; trap cleanup EXIT; git clone --quiet --depth 1 --branch v0.4.0 https://github.com/newlightlw/agent-team-memory.git "$TEAM_MEMORY_BOOTSTRAP/tool"; bash "$TEAM_MEMORY_BOOTSTRAP/tool/scripts/install.sh" "$@"' -- --repo YOUR_ORG/team-shared-memory --author alice --tools codex --enable-upload
+bash -c 'set -e; TEAM_MEMORY_BOOTSTRAP=$(mktemp -d); cleanup(){ rm -rf "$TEAM_MEMORY_BOOTSTRAP"; }; trap cleanup EXIT; git clone --quiet --depth 1 --branch v0.4.1 https://github.com/newlightlw/agent-team-memory.git "$TEAM_MEMORY_BOOTSTRAP/tool"; bash "$TEAM_MEMORY_BOOTSTRAP/tool/scripts/install.sh" "$@"' -- --repo YOUR_ORG/team-shared-memory --author alice --tools codex --enable-upload
 ```
 
 把数据库、作者代号换成自己的；多个客户端用 `--tools codex,claude,hermes`。安装会添加标准 MCP 配置与 `team-memory-archive` 技能；托管的旧版 MCP 可在同一缓存/作者下升级，其他 MCP 与配置保留并私有备份。重载 MCP 或新开会话后说：
@@ -54,7 +54,7 @@ bash -c 'set -e; TEAM_MEMORY_BOOTSTRAP=$(mktemp -d); cleanup(){ rm -rf "$TEAM_ME
   "state": "/home/you/.config/team-memory/feishu-sync-state.json",
   "gh": "/absolute/path/to/gh",
   "summary_command": [
-    "/absolute/path/to/releases/v0.4.0/venv/bin/python",
+    "/absolute/path/to/releases/v0.4.1/venv/bin/python",
     "-m", "team_memory.archive_summarizer", "--codex", "/absolute/path/to/codex"
   ],
   "interval_seconds": 60
@@ -68,6 +68,8 @@ bash -c 'set -e; TEAM_MEMORY_BOOTSTRAP=$(mktemp -d); cleanup(){ rm -rf "$TEAM_ME
 ```
 
 `summary_command` 是 argv 数组，不经过 shell；输入为单条来源 JSON，输出为严格六字段 JSON，可替换为自己的 AI 工具适配器。内置 Codex 适配器使用现有 Codex 登录，临时独立环境，禁用 shell、MCP、web、hooks、持久会话；模型只处理来源数据。它会使用账号的模型额度。当前验收针对兼容这些禁用选项的本机 Codex；不兼容版本会失败并保留进度。
+
+登录启动服务需显式保留本人必要的网络代理/CA 配置（如 HTTPS_PROXY、NO_PROXY、SSL_CERT_FILE）；它不自动继承交互终端的环境。代理含认证时仅存本机私有配置。
 
 常驻模式由电脑在线运行；电脑休眠、AI 限额或网络故障期间暂停，恢复后从已确认进度续传，不是云端始终在线的承诺。单次进程锁防重入，成功才推进 cursor；摘要失败/来源变化/上传未确认不推进。每条记录有稳定文件键，重试先读 GitHub 再决定是否写，处理响应丢失造成的结果未知。
 

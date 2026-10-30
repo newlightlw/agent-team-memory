@@ -163,3 +163,31 @@ def test_literal_credentials_removed_before_github():
 def test_multibyte_archive_cannot_exceed_reader_blob_budget():
     with pytest.raises(ValueError, match="blob budget"):
         render_archive("large", SUMMARY, author="alice", source="codex", source_refs=["synthetic:test"], original="中" * 90000)
+
+
+@pytest.mark.skipif(__import__('os').name == 'nt', reason='POSIX background process-group acceptance')
+@pytest.mark.parametrize('parent_exits', [False, True])
+def test_summary_timeout_kills_cli_descendants_and_removes_auth_copy(tmp_path, monkeypatch, parent_exits):
+    import os
+    import subprocess
+    import sys
+    import tempfile
+    from team_memory.archive_summarizer import summarize
+    monkeypatch.setattr(tempfile, 'tempdir', str(tmp_path))
+    pid_file = tmp_path / 'synthetic-child.pid'
+    binary = tmp_path / 'fake-codex'
+    binary.write_text('#!' + sys.executable + '\n' +
+        'import subprocess,sys,time,pathlib\n' +
+        'child=subprocess.Popen([sys.executable,"-c","import time;time.sleep(120)"])\n' +
+        'pathlib.Path(' + repr(str(pid_file)) + ').write_text(str(child.pid))\n' +
+        ('sys.exit(0)\n' if parent_exits else 'time.sleep(120)\n'))
+    binary.chmod(0o700)
+    auth = tmp_path / 'synthetic-auth.json'
+    auth.write_text('{"synthetic":"not-a-real-credential"}')
+    with pytest.raises(RuntimeError, match='timed out'):
+        summarize({'body':'synthetic'}, str(binary), auth_file=str(auth), timeout=1)
+    assert pid_file.exists()
+    pid = int(pid_file.read_text())
+    result = subprocess.run(['ps','-p',str(pid),'-o','stat='],capture_output=True,text=True)
+    assert result.returncode != 0 or result.stdout.strip().startswith('Z')
+    assert not list(tmp_path.glob('team-memory-summary-*/auth.json'))
