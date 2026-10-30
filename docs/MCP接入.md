@@ -5,7 +5,7 @@
 
 ## 是什么
 
-team-memory 内置一个 MCP Server（`team_memory/mcp_server.py`），暴露 6 个 tools。
+team-memory 内置一个 MCP Server（`team_memory/mcp_server.py`），暴露 5 个旧版 tools（新 GitHub 接入请用 shared_mcp）。
 配好后，Claude Code / Cursor / Codex / Hermes 在对话中能**直接调用**这些工具
 读写团队记忆（读：search/get/list；写候选：propose；审核：approve）。
 
@@ -81,11 +81,11 @@ TEAM_MEMORY_ROOT = "/path/to/team-memory"
 | `list_memories(type?)` | 列正式记忆 | 只读 |
 | `propose_memory(title, type, source, author)` | **提交候选到 inbox**（pending_review） | 写候选 |
 | `list_inbox(status?)` | 列候选记忆 | 只读 |
-| `approve_memory(id)` | 候选 → 正式（active） | 写正式 |
+| `真人终端 team-memory approve（非 MCP）(id)` | 候选 → 正式（active） | 写正式 |
 
 ## 核心原则
 
-> **AI 可 propose（候选），但不直接写正式记忆；approve 由人触发**（或人明确授权 AI 调 `approve_memory`）。
+> **AI 可 propose（候选），但不直接写正式记忆；approve 由人触发**（或人明确授权 AI 调 `真人终端 team-memory approve（非 MCP）`）。
 
 这样既给 AI 动态贡献记忆的能力，又保留人工审核把关，防止 AI 错误经验污染正式记忆。
 

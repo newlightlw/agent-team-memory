@@ -1,4 +1,4 @@
-recursive-include templates *
+recursive-include team_memory/templates *
 recursive-include docs *.md
 recursive-include .gitea *
 include README.md

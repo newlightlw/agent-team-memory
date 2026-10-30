@@ -22,6 +22,7 @@ def index_cmd(
     """生成各类型 _index.md; 返回写入的文件列表。"""
     console = console or Console()
     store = MemoryStore.open(root)
+    store.assert_writable()
     written: list[Path] = []
 
     from ..models import TYPE_DIR

@@ -7,13 +7,14 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 __all__ = ["Config", "load_config", "parse_env_file"]
 
 # 与 .env 中对应的键名
 _ENV_KEYS = (
+    "REMOTE_URL",
     "GITEA_REMOTE_URL",
     "GITEA_TOKEN",
     "TEAM_NAME",
@@ -56,8 +57,9 @@ def parse_env_file(path: Path) -> dict[str, str]:
 class Config:
     """运行配置。不可变。"""
 
+    remote_url: str = ""
     gitea_remote_url: str = ""
-    gitea_token: str = ""
+    gitea_token: str = field(default="", repr=False)
     team_name: str = "我们的团队"
     default_author: str = ""
     default_memory_path: str = "./memory"
@@ -69,7 +71,7 @@ class Config:
     @property
     def has_gitea_remote(self) -> bool:
         """是否配置了非空的 Git remote。"""
-        return bool(self.gitea_remote_url.strip())
+        return bool(self.remote_url.strip() or self.gitea_remote_url.strip())
 
     @property
     def has_external_source(self) -> bool:
@@ -79,20 +81,19 @@ class Config:
     @property
     def is_remote_placeholder(self) -> bool:
         """Git remote 是否仍是占位符(未填真实地址)。"""
-        return _PLACEHOLDER_HOST in self.gitea_remote_url
+        return _PLACEHOLDER_HOST in (self.remote_url or self.gitea_remote_url)
 
     def resolved_remote_url(self) -> str:
         """返回可用于推送的 remote url。
 
-        若是 HTTPS 且配了 token, 注入 oauth2:token 凭据; 否则原样返回(SSH 方式无需 token)。
+        只返回不含凭证的 URL；HTTPS 使用 Git credential helper，SSH 使用本人密钥。
         """
-        url = self.gitea_remote_url.strip()
-        token = self.gitea_token.strip()
-        if token and url.startswith("https://"):
-            rest = url[len("https://"):]
-            netloc = rest.split("/", 1)[0]
-            if "@" not in netloc:
-                return f"https://oauth2:{token}@{rest}"
+        from .sharing import validate_remote
+        url = self.remote_url.strip() or self.gitea_remote_url.strip()
+        if self.gitea_token:
+            raise ValueError("GITEA_TOKEN URL injection retired; use git credential helper / gh auth setup-git or SSH")
+        if url:
+            validate_remote(url)
         return url
 
     @classmethod
@@ -115,6 +116,7 @@ class Config:
         except ValueError:
             web_port = 8765
         return cls(
+            remote_url=merged.get("REMOTE_URL", ""),
             gitea_remote_url=merged.get("GITEA_REMOTE_URL", ""),
             gitea_token=merged.get("GITEA_TOKEN", ""),
             team_name=merged.get("TEAM_NAME", "我们的团队"),

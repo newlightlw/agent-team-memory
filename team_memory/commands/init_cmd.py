@@ -44,6 +44,9 @@ def init_cmd(
     root = Path(path).resolve()
     root.mkdir(parents=True, exist_ok=True)
 
+    from ..store import MemoryStore
+    MemoryStore(root).assert_writable()
+
     # 1. 标记文件(标识记忆仓库根)
     _write_marker(root, team_name)
 
