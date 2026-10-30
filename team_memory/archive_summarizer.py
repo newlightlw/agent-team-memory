@@ -8,6 +8,8 @@ import json
 import os
 from pathlib import Path
 import shutil
+import signal
+import threading
 import subprocess
 import tempfile
 
@@ -22,7 +24,7 @@ applications 未来应用、触发条件与限制；discussions 讨论点、不�
 来源：\n'''
 
 
-def summarize(record, binary, *, auth_file=None):
+def summarize(record, binary, *, auth_file=None, timeout=240):
     raw = redact_credentials(json.dumps(record, ensure_ascii=False))
     if len(raw) > 120000:
         raise ValueError("Source budget exceeded; split material explicitly")
@@ -50,12 +52,41 @@ def summarize(record, binary, *, auth_file=None):
             "NO_PROXY", "https_proxy", "http_proxy", "all_proxy", "no_proxy", "SSL_CERT_FILE", "SSL_CERT_DIR"
         )}
         env["CODEX_HOME"] = str(root)
-        result = subprocess.run(args, input=PROMPT + raw, cwd=root, env=env,
-                                capture_output=True, text=True, timeout=240)
-        if result.returncode or not (root / "answer.json").is_file():
+        # The CLI wrapper can spawn a native child. Kill the whole process group,
+        # otherwise inherited pipes can keep communicate() hanging after timeout.
+        process = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, text=True, cwd=root, env=env,
+                                   start_new_session=os.name != "nt")
+        def stop():
+            if os.name != "nt":
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            elif process.poll() is None:
+                process.kill()
+        def terminated(signum, frame):
+            stop()
+            raise SystemExit(128 + signum)
+        previous_handler = None
+        if threading.current_thread() is threading.main_thread():
+            previous_handler = signal.signal(signal.SIGTERM, terminated)
+        try:
+            try:
+                output, _ = process.communicate(PROMPT + raw, timeout=timeout)
+            except subprocess.TimeoutExpired:
+                stop()
+                process.communicate()
+                raise RuntimeError("AI summary timed out; child processes stopped, source not uploaded") from None
+        finally:
+            stop()
+            process.wait()
+            if previous_handler is not None:
+                signal.signal(signal.SIGTERM, previous_handler)
+        if process.returncode or not (root / "answer.json").is_file():
             raise RuntimeError("Codex summary unavailable; no upload performed")
         # Independently reject unexpected tool execution evidence.
-        for line in result.stdout.splitlines():
+        for line in output.splitlines():
             event = json.loads(line)
             item = event.get("item", {})
             if item and item.get("type") not in ("agent_message", "reasoning"):
